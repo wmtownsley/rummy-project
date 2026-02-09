@@ -40,30 +40,47 @@ Playable on iPhones and Mac computers via web browser.
 
 ## Game Requirements
 
+See `rummy_rules.md` for full rules. Key points for game design:
+
 ### Players
 - 2 players only (no need to architect for more)
 
 ### Core Mechanics
-- Standard 52-card deck
-- Random shuffling
+- Standard 52-card deck (no jokers)
+- Aces are high AND low — wrap-around runs valid (e.g., Q-K-A-2-3)
 - Deal 7 cards to each player at start of each hand
 - **Private hands** — each player sees only their own cards
-- **Shared discard pile** — both players can see
+- **Shared discard pile** — both players can see ALL cards (critical, see UI below)
 - **Draw pile** — face down, shared
-- Players can lay down cards (melds) during their turn → positive points
-- Cards remaining in hand when someone goes out → negative points
+
+### Point Values
+- Ace = 15 points
+- 2–9 = 5 points each
+- 10, J, Q, K = 10 points each
 
 ### Turn Structure
 - Clear indication of whose turn it is
-- On your turn: draw a card (from deck or discard pile), optionally lay down melds, discard one card
-- Turn passes to the other player
+- **Draw phase:** Draw from deck (1 card) OR from discard pile (1 or more cards)
+  - Multi-card discard pickup: take from top down to any card in the pile
+  - The deepest card taken MUST be played in a meld/lay off that turn
+- **Play phase:** Optionally lay down melds, optionally lay off on any table meld
+- **Discard phase:** Discard one card to end turn (optional ONLY when going out)
 - If opponent is offline, your move is stored and they see the updated board when they return
+
+### Going Out
+- A player goes out when they have no cards left
+- Discarding is optional when going out
+- Ends the round
+
+### Scoring
+- Cards in melds = positive points for that player
+- Cards left in hand = negative points
+- Running tally across rounds: per-player +/- scores, running total, delta
 
 ### Design Philosophy
 - **Don't over-automate** — this is a virtual card table, not a rule engine
 - Players decide among themselves when the game is over
 - Keep the experience focused on the feel of playing cards together
-- Rules will be provided later by Mark for any specific enforcement needed
 
 ## Architecture (Planned)
 
@@ -121,12 +138,31 @@ Single Page App (no build step)
 - Your hand (private, bottom of screen)
 - Opponent's hand (face-down cards, top of screen)
 - Draw pile (center, face down) with card count
-- Discard pile (center, face up, top card visible)
+- **Discard pile (cascaded fan — see below)**
 - Laid-down melds area (visible to both players)
-- Score display
+- Score display / running tally
 - Turn indicator (whose turn + what phase: draw/play/discard)
 - Online/offline presence indicator for opponent
 - Last action description ("Mark drew from the discard pile")
+
+### Discard Pile — Critical UI Design
+The discard pile must show ALL cards, not just the top card, because players
+can pick up multiple cards down to any depth.
+
+**Design: Vertical cascaded fan**
+- Cards overlap vertically, each offset ~25px to show rank + suit in corner
+- Most recent discard on top, oldest at bottom
+- When pile gets deep (15-20 cards), the area becomes scrollable
+- During draw phase, tapping any card in the discard pile picks up that card
+  and everything above it
+- Visual highlight on hover/tap to show which cards you'd be picking up
+- The deepest card in the selection is highlighted differently (must be played)
+
+### Card Images
+- Using SVG-cards by David Bellot / htdebeer (LGPL-2.1)
+- 2x retina PNG files for crisp display on iPhone
+- 52 cards + red card back in `cards/` directory
+- Naming: `{suit}_{rank}.png` — e.g., `heart_1.png`, `spade_queen.png`
 
 ## Firebase Setup (Completed)
 
@@ -146,7 +182,15 @@ Single Page App (no build step)
 - [x] Set up Firebase project (Rummy2go, Spark plan)
 - [x] Created Realtime Database (us-central1)
 - [x] Registered web app and saved config
-- [ ] Mark to provide specific Rummy rules they play by
-- [ ] Build the app
+- [x] Rummy rules defined (see rummy_rules.md)
+- [x] Card images added (SVG-cards 2x PNGs, LGPL-2.1)
+- [x] Built the app (v1 — full game loop)
+  - Lobby: create game, join with code, resume saved games
+  - Game: draw, meld, lay off, discard, go out, scoring
+  - Discard pile: cascaded fan, multi-card pickup
+  - Scoreboard: round-by-round tally, running totals, delta
+  - Two-tab testing: token-in-URL player identity
+  - PWA: manifest + meta tags for Add to Home Screen
 - [ ] Enable GitHub Pages
 - [ ] Test on iPhone and Mac
+- [ ] Add Firebase security rules (hands/deck privacy)

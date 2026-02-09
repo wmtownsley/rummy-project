@@ -1,0 +1,17 @@
+{
+  "name": "Rummy2go",
+  "short_name": "Rummy2go",
+  "description": "Two-player Rummy card game",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1a5c2a",
+  "theme_color": "#1a5c2a",
+  "icons": [
+    {
+      "src": "cards/back.png",
+      "sizes": "338x489",
+      "type": "image/png"
+    }
+  ]
+}

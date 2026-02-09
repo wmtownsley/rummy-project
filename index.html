@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a5c2a">
+  <title>Rummy2go</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="cards/back.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== Lobby Screen ===== -->
+    <div id="lobby-screen">
+      <h1>Rummy2go</h1>
+      <p class="subtitle">Two-player Rummy, anywhere</p>
+
+      <!-- Resume existing game -->
+      <div id="resume-section" class="lobby-section">
+        <h2>Continue Game</h2>
+        <div id="resume-list"></div>
+      </div>
+
+      <!-- Create new game -->
+      <div id="create-section" class="lobby-section">
+        <h2>New Game</h2>
+        <input type="text" id="create-name" placeholder="Your name" maxlength="20" autocomplete="off">
+        <button class="btn btn-primary" id="create-btn">Create Game</button>
+      </div>
+
+      <!-- Join existing game -->
+      <div id="join-section" class="lobby-section">
+        <h2>Join Game</h2>
+        <input type="text" id="join-code" placeholder="Game code" maxlength="6" autocomplete="off" style="text-transform: uppercase">
+        <input type="text" id="join-name" placeholder="Your name" maxlength="20" autocomplete="off">
+        <button class="btn btn-primary" id="join-btn">Join</button>
+      </div>
+
+      <!-- Waiting for opponent -->
+      <div id="waiting-section" class="lobby-section" style="display:none">
+        <h2>Waiting for opponent...</h2>
+        <div class="game-code" id="show-game-code"></div>
+        <p class="share-link">Share this code or link with your opponent:</p>
+        <p class="share-link" id="show-join-link"></p>
+        <button class="btn btn-secondary btn-small" id="copy-link-btn">Copy Link</button>
+        <p class="waiting-pulse" style="margin-top:14px">Waiting for them to join...</p>
+      </div>
+    </div>
+
+    <!-- ===== Game Screen ===== -->
+    <div id="game-screen">
+
+      <!-- Top bar: opponent info -->
+      <div id="top-bar">
+        <div class="player-info">
+          <span class="online-dot" id="opponent-dot"></span>
+          <span id="opponent-name-display">Opponent</span>
+        </div>
+        <div class="score-info" id="scores-display" style="cursor:pointer" title="View scoreboard">
+          Scores
+        </div>
+      </div>
+
+      <!-- Opponent hand (face down) -->
+      <div id="opponent-hand"></div>
+
+      <!-- Opponent melds -->
+      <div class="melds-area" id="opponent-melds">
+        <span class="meld-label" id="opponent-meld-label"></span>
+      </div>
+
+      <!-- Table: draw pile + discard pile -->
+      <div id="table-area">
+        <div id="draw-pile">
+          <div class="card-stack" id="draw-stack">
+            <div class="card card-back" style="width:100%;height:100%">
+              <img src="cards/back.png" alt="Draw pile">
+            </div>
+          </div>
+          <div class="pile-count" id="deck-count">52</div>
+        </div>
+        <div id="discard-pile">
+          <div class="discard-label">Discard Pile</div>
+          <div class="discard-cascade" id="discard-cascade"></div>
+        </div>
+      </div>
+
+      <!-- Player melds -->
+      <div class="melds-area" id="player-melds">
+        <span class="meld-label" id="player-meld-label"></span>
+      </div>
+
+      <!-- Action bar -->
+      <div id="action-bar"></div>
+
+      <!-- Player hand -->
+      <div id="player-hand"></div>
+
+      <!-- Status bar -->
+      <div id="status-bar">
+        <span class="turn-text" id="turn-text">Waiting...</span>
+        <span class="last-action" id="last-action"></span>
+      </div>
+    </div>
+
+    <!-- Pickup confirm button (floating) -->
+    <button id="pickup-confirm">Pick Up</button>
+
+    <!-- Scoreboard modal -->
+    <div id="scoreboard-overlay">
+      <div id="scoreboard">
+        <h2>Scoreboard</h2>
+        <div id="scoreboard-content"></div>
+        <div class="round-actions" id="scoreboard-actions"></div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+  </div>
+
+  <!-- Firebase SDK (compat for no-build-step) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <!-- Game logic & App -->
+  <script src="game.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
