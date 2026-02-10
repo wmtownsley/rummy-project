@@ -209,10 +209,36 @@ html, body {
   margin: 8px 0;
   cursor: pointer;
   transition: background var(--transition);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 #resume-section .resume-item:hover {
   background: rgba(255,255,255,0.2);
+}
+
+.btn-delete {
+  background: rgba(220,53,69,0.3);
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+  transition: all var(--transition);
+}
+
+.btn-delete:hover {
+  background: var(--red);
+  color: white;
 }
 
 /* --- Game Screen --- */

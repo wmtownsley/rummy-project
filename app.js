@@ -70,10 +70,32 @@ function cacheDom() {
   dom.toast = document.getElementById('toast');
 }
 
-// === Local Storage ===
+// === Session & Local Storage ===
+// sessionStorage is PER-TAB — prevents identity crossover between tabs
+function setSessionIdentity(gameId, playerSlot, token) {
+  sessionStorage.setItem('rummy_gameId', gameId);
+  sessionStorage.setItem('rummy_playerSlot', playerSlot);
+  sessionStorage.setItem('rummy_token', token);
+  console.log('[Rummy] Session identity SET: ' + playerSlot + ' for game ' + gameId);
+}
+
+function getSessionIdentity() {
+  var gameId = sessionStorage.getItem('rummy_gameId');
+  var playerSlot = sessionStorage.getItem('rummy_playerSlot');
+  var token = sessionStorage.getItem('rummy_token');
+  if (gameId && playerSlot && token) {
+    return { gameId: gameId, playerSlot: playerSlot, token: token };
+  }
+  return null;
+}
+
 function saveGameLocally(gameId, playerSlot, token) {
+  // Save to both sessionStorage (per-tab) and localStorage (for resume across sessions)
+  setSessionIdentity(gameId, playerSlot, token);
   var games = JSON.parse(localStorage.getItem('rummy2go_games') || '{}');
-  games[gameId] = { playerSlot: playerSlot, token: token, lastPlayed: Date.now() };
+  // Key by gameId AND playerSlot to prevent overwrites
+  var key = gameId + ':' + playerSlot;
+  games[key] = { gameId: gameId, playerSlot: playerSlot, token: token, lastPlayed: Date.now() };
   localStorage.setItem('rummy2go_games', JSON.stringify(games));
 }
 
@@ -82,8 +104,85 @@ function getSavedGames() {
 }
 
 function getSavedGame(gameId) {
+  // First check sessionStorage (per-tab, most reliable)
+  var session = getSessionIdentity();
+  if (session && session.gameId === gameId) {
+    return session;
+  }
+  // Fall back to localStorage
   var games = getSavedGames();
-  return games[gameId] || null;
+  // Try both player slots
+  return games[gameId + ':player1'] || games[gameId + ':player2'] || games[gameId] || null;
+}
+
+// === Delete Games ===
+async function deleteGame(gameId, localKey) {
+  // Remove from Firebase
+  try {
+    await db.ref('games/' + gameId).remove();
+    console.log('[Rummy] Deleted game ' + gameId + ' from Firebase');
+  } catch (e) {
+    console.warn('[Rummy] Could not delete from Firebase:', e.message);
+  }
+
+  // Remove from localStorage
+  var games = JSON.parse(localStorage.getItem('rummy2go_games') || '{}');
+  delete games[localKey];
+  // Also try other key formats
+  delete games[gameId];
+  delete games[gameId + ':player1'];
+  delete games[gameId + ':player2'];
+  localStorage.setItem('rummy2go_games', JSON.stringify(games));
+
+  // Clear sessionStorage if it matches
+  if (sessionStorage.getItem('rummy_gameId') === gameId) {
+    sessionStorage.removeItem('rummy_gameId');
+    sessionStorage.removeItem('rummy_playerSlot');
+    sessionStorage.removeItem('rummy_token');
+  }
+
+  // Detach listener if this is the current game
+  if (app.gameId === gameId) {
+    if (app.listener) app.listener.off();
+    app.gameId = null;
+    app.playerSlot = null;
+    app.playerToken = null;
+    app.game = null;
+    app.selectedCards = [];
+    // Clear URL params
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  showToast('Game ' + gameId + ' deleted');
+  showLobby();
+}
+
+async function deleteAllGames(entries) {
+  for (var i = 0; i < entries.length; i++) {
+    try {
+      await db.ref('games/' + entries[i].gameId).remove();
+    } catch (e) { /* best effort */ }
+  }
+
+  // Clear all localStorage game data
+  localStorage.removeItem('rummy2go_games');
+
+  // Clear sessionStorage
+  sessionStorage.removeItem('rummy_gameId');
+  sessionStorage.removeItem('rummy_playerSlot');
+  sessionStorage.removeItem('rummy_token');
+
+  // Reset app state
+  if (app.listener) app.listener.off();
+  app.gameId = null;
+  app.playerSlot = null;
+  app.playerToken = null;
+  app.game = null;
+  app.selectedCards = [];
+  window.history.replaceState({}, '', window.location.pathname);
+
+  showToast('All games deleted');
+  showLobby();
 }
 
 // === Toast ===
@@ -149,23 +248,56 @@ function showGame() {
 
 function showResumeSection() {
   var games = getSavedGames();
-  var ids = Object.keys(games).sort(function(a, b) {
-    return (games[b].lastPlayed || 0) - (games[a].lastPlayed || 0);
+  var entries = Object.keys(games).map(function(key) {
+    var g = games[key];
+    g._key = key;
+    return g;
+  }).filter(function(g) {
+    return g.gameId && g.playerSlot && g.token;
+  }).sort(function(a, b) {
+    return (b.lastPlayed || 0) - (a.lastPlayed || 0);
   });
-  if (ids.length === 0) {
+  if (entries.length === 0) {
     dom.resumeSection.style.display = 'none';
     return;
   }
   dom.resumeSection.style.display = '';
   dom.resumeList.innerHTML = '';
-  ids.slice(0, 5).forEach(function(id) {
-    var info = games[id];
+  entries.slice(0, 5).forEach(function(entry) {
     var item = document.createElement('div');
     item.className = 'resume-item';
-    item.textContent = 'Game ' + id + ' (' + info.playerSlot.replace('player', 'Player ') + ')';
-    item.addEventListener('click', function() { resumeGame(id); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Game ' + entry.gameId + ' (' + entry.playerSlot.replace('player', 'Player ') + ')';
+    item.appendChild(label);
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn-delete';
+    delBtn.textContent = '\u00D7'; // × symbol
+    delBtn.title = 'Delete this game';
+    delBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteGame(entry.gameId, entry._key);
+    });
+    item.appendChild(delBtn);
+
+    item.addEventListener('click', function() {
+      resumeGameWithToken(entry.gameId, entry.token);
+    });
     dom.resumeList.appendChild(item);
   });
+
+  // "Delete all" link
+  if (entries.length > 1) {
+    var deleteAllBtn = document.createElement('button');
+    deleteAllBtn.className = 'btn btn-secondary btn-small';
+    deleteAllBtn.style.marginTop = '10px';
+    deleteAllBtn.textContent = 'Delete All Saved Games';
+    deleteAllBtn.addEventListener('click', function() {
+      deleteAllGames(entries);
+    });
+    dom.resumeList.appendChild(deleteAllBtn);
+  }
 }
 
 // === Firebase: Create Game ===
@@ -906,12 +1038,28 @@ function shakeButton(btn) {
 function renderActionBar() {
   dom.actionBar.innerHTML = '';
 
+  // Show status hint when not your turn or in draw phase
   if (!isMyTurn()) {
     if (app.game.status !== 'roundOver') {
       var hint = document.createElement('div');
       hint.className = 'action-hint';
       hint.textContent = 'Waiting for ' + (oppPlayer() ? oppPlayer().name : 'opponent') + '...';
       dom.actionBar.appendChild(hint);
+    }
+    // Still show sort button even when waiting
+    if (myHand().length > 0) {
+      var sortBtn2 = document.createElement('button');
+      sortBtn2.className = 'btn btn-secondary btn-small';
+      sortBtn2.textContent = SORT_LABELS[app.sortMode || 'suit'];
+      sortBtn2.addEventListener('click', async function() {
+        var currentIdx = SORT_MODES.indexOf(app.sortMode || 'suit');
+        var nextIdx = (currentIdx + 1) % SORT_MODES.length;
+        app.sortMode = SORT_MODES[nextIdx];
+        var sorted = sortHand(myHand(), app.sortMode);
+        await db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/hand').set(sorted);
+        app.selectedCards = [];
+      });
+      dom.actionBar.appendChild(sortBtn2);
     }
     return;
   }
@@ -939,6 +1087,8 @@ function renderActionBar() {
     layBtn.className = 'btn btn-primary btn-small';
     layBtn.textContent = 'Lay Down';
     layBtn.addEventListener('click', function() {
+      if (!isMyTurn()) { showToast('Not your turn'); return; }
+      if (app.game.phase !== 'play') { showToast('Draw a card first'); return; }
       var sel = app.selectedCards.slice();
       if (sel.length === 0) {
         showToast('Select cards first');
@@ -969,6 +1119,8 @@ function renderActionBar() {
       discardBtn.title = 'Must play ' + cardDisplayName(app.mustPlayCard) + ' first';
     }
     discardBtn.addEventListener('click', function() {
+      if (!isMyTurn()) { showToast('Not your turn'); return; }
+      if (app.game.phase !== 'play') { showToast('Draw a card first'); return; }
       if (app.mustPlayCard) {
         showToast('Must lay down ' + cardDisplayName(app.mustPlayCard) + ' before discarding');
         return;
@@ -1030,10 +1182,12 @@ function renderPlayerHand() {
       cardEl.style.marginLeft = (i === 0 ? '0' : (-(cardWidth - overlap)) + 'px');
     }
 
-    (function(cid) {
-      cardEl.addEventListener('click', function() {
+    cardEl.setAttribute('data-card', cardId);
+    cardEl.onclick = (function(cid) {
+      return function(e) {
+        e.stopPropagation();
         toggleCardSelection(cid);
-      });
+      };
     })(cardId);
 
     dom.playerHand.appendChild(cardEl);
@@ -1115,7 +1269,7 @@ function showScoreboard() {
 // === Card Selection ===
 
 function toggleCardSelection(cardId) {
-  if (!isMyTurn() || app.game.phase !== 'play') return;
+  // Always allow selection — it's just UI state. Validation happens on action.
   var idx = app.selectedCards.indexOf(cardId);
   if (idx === -1) {
     app.selectedCards.push(cardId);
@@ -1206,17 +1360,24 @@ function init() {
   cacheDom();
   setupEventListeners();
 
-  // Check URL params
+  // Priority 1: sessionStorage (per-tab, most reliable for identity)
+  var session = getSessionIdentity();
   var params = getUrlParams();
-  if (params.g && params.t) {
-    // Resume with token from URL (supports two-tab testing)
+
+  if (session && params.g && session.gameId === params.g.toUpperCase()) {
+    // Resume from session — this tab knows who it is
+    console.log('[Rummy] Init: resuming from sessionStorage as ' + session.playerSlot);
+    resumeGameWithToken(session.gameId, session.token);
+  } else if (params.g && params.t) {
+    // Resume with token from URL
+    console.log('[Rummy] Init: resuming from URL params');
     resumeGameWithToken(params.g.toUpperCase(), params.t);
   } else if (params.g) {
     var gameId = params.g.toUpperCase();
     var saved = getSavedGame(gameId);
-    if (saved) {
-      // Resume from localStorage
-      resumeGame(gameId);
+    if (saved && saved.token) {
+      console.log('[Rummy] Init: resuming from localStorage as ' + saved.playerSlot);
+      resumeGameWithToken(saved.gameId || gameId, saved.token);
     } else {
       // Join flow — pre-fill code
       dom.joinCode.value = gameId;
