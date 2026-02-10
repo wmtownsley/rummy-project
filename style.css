@@ -153,15 +153,27 @@ html, body {
   transform: none;
 }
 
+.btn.error-shake {
+  animation: shake 0.4s ease;
+  background: var(--red) !important;
+  color: white !important;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
 .divider {
   color: var(--text-muted);
   margin: 16px 0;
   font-size: 0.9em;
 }
 
-#waiting-section {
-  display: none;
-}
+/* #waiting-section visibility is managed by JS inline styles */
 
 #waiting-section .game-code {
   font-size: 2em;
@@ -188,9 +200,7 @@ html, body {
 }
 
 /* --- Resume Section --- */
-#resume-section {
-  display: none;
-}
+/* #resume-section visibility is managed by JS inline styles */
 
 #resume-section .resume-item {
   background: rgba(255,255,255,0.1);
@@ -488,6 +498,12 @@ html, body {
 
 #status-bar .turn-text.opponent-turn {
   color: var(--text-muted);
+}
+
+#status-bar .my-identity {
+  font-size: 0.8em;
+  color: var(--gold);
+  opacity: 0.7;
 }
 
 #status-bar .last-action {

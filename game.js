@@ -72,13 +72,34 @@ function shuffleDeck(deck) {
 
 // --- Hand sorting ---
 
-function sortHand(cards) {
-  const suitOrder = { C: 0, D: 1, H: 2, S: 3 };
+var SORT_MODES = ['suit', 'rank', 'points'];
+var SORT_LABELS = { suit: 'Sort: by Suit', rank: 'Sort: by Rank', points: 'Sort: by Points' };
+
+function sortHand(cards, mode) {
+  var suitOrder = { C: 0, D: 1, H: 2, S: 3 };
   return cards.slice().sort(function(a, b) {
-    const sa = suitOrder[cardSuit(a)];
-    const sb = suitOrder[cardSuit(b)];
-    if (sa !== sb) return sa - sb;
-    return rankIndex(cardRank(a)) - rankIndex(cardRank(b));
+    if (mode === 'rank') {
+      // Primary: rank, secondary: suit
+      var ra = rankIndex(cardRank(a));
+      var rb = rankIndex(cardRank(b));
+      if (ra !== rb) return ra - rb;
+      return suitOrder[cardSuit(a)] - suitOrder[cardSuit(b)];
+    } else if (mode === 'points') {
+      // Primary: point value (5, 10, 15), secondary: rank, tertiary: suit
+      var pa = cardPoints(a);
+      var pb = cardPoints(b);
+      if (pa !== pb) return pa - pb;
+      var ra = rankIndex(cardRank(a));
+      var rb = rankIndex(cardRank(b));
+      if (ra !== rb) return ra - rb;
+      return suitOrder[cardSuit(a)] - suitOrder[cardSuit(b)];
+    } else {
+      // Default 'suit': primary suit, secondary rank
+      var sa = suitOrder[cardSuit(a)];
+      var sb = suitOrder[cardSuit(b)];
+      if (sa !== sb) return sa - sb;
+      return rankIndex(cardRank(a)) - rankIndex(cardRank(b));
+    }
   });
 }
 
@@ -129,6 +150,46 @@ function isValidRun(cards) {
 
 function isValidMeld(cards) {
   return isValidSet(cards) || isValidRun(cards);
+}
+
+// Returns { valid: true } or { valid: false, reason: "..." }
+function validateMeld(cards) {
+  if (!cards || cards.length < 3) {
+    return { valid: false, reason: 'Need at least 3 cards to lay down' };
+  }
+  if (isValidSet(cards) || isValidRun(cards)) {
+    return { valid: true };
+  }
+  // Explain why it failed
+  var ranks = cards.map(function(c) { return cardRank(c); });
+  var suits = cards.map(function(c) { return cardSuit(c); });
+  var uniqueRanks = new Set(ranks);
+  var uniqueSuits = new Set(suits);
+
+  if (uniqueRanks.size === 1) {
+    // All same rank but wrong count or duplicate suits
+    if (cards.length > 4) {
+      return { valid: false, reason: 'A set can have at most 4 cards (one per suit)' };
+    }
+    return { valid: false, reason: 'Duplicate suits in set — need different suits for ' + ranks[0] };
+  }
+  if (uniqueSuits.size === 1) {
+    // All same suit but not in sequence
+    return { valid: false, reason: 'Same suit (' + SUIT_NAMES[suits[0]] + ') but not in sequence' };
+  }
+  if (uniqueRanks.size > 1 && uniqueSuits.size > 1) {
+    return { valid: false, reason: 'Mixed ranks and suits — need all same rank (set) or all same suit in order (run)' };
+  }
+  return { valid: false, reason: 'Not a valid meld' };
+}
+
+// For lay off: returns { valid: true } or { valid: false, reason: "..." }
+function validateLayOff(card, meld) {
+  var extended = meld.concat([card]);
+  if (isValidMeld(extended)) {
+    return { valid: true };
+  }
+  return { valid: false, reason: cardDisplayName(card) + ' doesn\'t extend this meld' };
 }
 
 function canLayOff(card, meld) {

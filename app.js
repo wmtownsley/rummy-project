@@ -25,6 +25,7 @@ var app = {
   selectedCards: [],     // card IDs selected in player hand
   discardPickupIdx: -1,  // index in discard pile user tapped (-1 = none)
   mustPlayCard: null,    // card ID that must be played this turn (from multi-pickup)
+  sortMode: 'suit',     // current sort mode: 'suit', 'rank', or 'points'
   listener: null         // Firebase listener reference
 };
 
@@ -194,6 +195,7 @@ async function createGame() {
     app.gameId = gameId;
     app.playerSlot = 'player1';
     app.playerToken = token;
+    console.log('[Rummy] Created game. I am player1 (' + name + '), gameId=' + gameId);
     saveGameLocally(gameId, 'player1', token);
     setUrlParam('g', gameId);
     setUrlParam('t', token);
@@ -218,7 +220,34 @@ async function joinGame(gameId, name) {
     var snap = await db.ref('games/' + gameId).once('value');
     var gameData = snap.val();
     if (!gameData) { showToast('Game not found'); dom.joinBtn.disabled = false; return; }
-    if (gameData.status !== 'waiting') { showToast('Game already started'); dom.joinBtn.disabled = false; return; }
+    if (gameData.status !== 'waiting') {
+      // Game already started — try to reconnect by matching name
+      var reconnectSlot = null;
+      if (gameData.players) {
+        if (gameData.players.player1 && gameData.players.player1.name.toLowerCase() === name.toLowerCase()) {
+          reconnectSlot = 'player1';
+        } else if (gameData.players.player2 && gameData.players.player2.name.toLowerCase() === name.toLowerCase()) {
+          reconnectSlot = 'player2';
+        }
+      }
+      if (reconnectSlot) {
+        // Reconnect this player
+        var reconnectToken = gameData.players[reconnectSlot].token;
+        app.gameId = gameId;
+        app.playerSlot = reconnectSlot;
+        app.playerToken = reconnectToken;
+        saveGameLocally(gameId, reconnectSlot, reconnectToken);
+        setUrlParam('g', gameId);
+        setUrlParam('t', reconnectToken);
+        showGame();
+        listenToGame(gameId);
+        showToast('Reconnected as ' + name + '!');
+        return;
+      }
+      showToast('Game already started');
+      dom.joinBtn.disabled = false;
+      return;
+    }
 
     var token = generateToken();
 
@@ -297,6 +326,7 @@ async function resumeGameWithToken(gameId, token) {
     app.gameId = gameId;
     app.playerSlot = playerSlot;
     app.playerToken = token;
+    console.log('[Rummy] Resumed game. I am ' + playerSlot + ', gameId=' + gameId);
     saveGameLocally(gameId, playerSlot, token);
     setUrlParam('g', gameId);
     setUrlParam('t', token);
@@ -333,18 +363,26 @@ function listenToGame(gameId) {
       showGame();
     }
     renderGame();
-    updatePresence();
   });
+
+  // Set up presence separately (not inside the listener — that causes infinite loops)
+  setupPresence();
 }
 
-// === Firebase: Update Presence ===
-function updatePresence() {
+// === Firebase: Presence (set up once, not inside the game listener) ===
+function setupPresence() {
   if (!app.gameId || !app.playerSlot) return;
   var presRef = db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/online');
-  presRef.set(true);
-  presRef.onDisconnect().set(false);
-  db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/lastSeen')
-    .set(firebase.database.ServerValue.TIMESTAMP);
+  var seenRef = db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/lastSeen');
+
+  // Use Firebase's built-in connection detection
+  db.ref('.info/connected').on('value', function(snap) {
+    if (snap.val() === true) {
+      presRef.set(true);
+      presRef.onDisconnect().set(false);
+      seenRef.onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+    }
+  });
 }
 
 // === Helpers ===
@@ -361,34 +399,49 @@ function oppPlayer() {
   return app.game && app.game.players && app.game.players[oppSlot];
 }
 
+// Firebase can return arrays as objects — normalize everywhere
+function toArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return Object.values(val);
+}
+
 function myHand() {
   var p = myPlayer();
-  return (p && p.hand) ? p.hand : [];
+  return p ? toArray(p.hand) : [];
 }
 
 function myMelds() {
   var p = myPlayer();
-  return (p && p.melds) ? p.melds : [];
+  if (!p || !p.melds) return [];
+  // Melds is an array of arrays — normalize both levels
+  var melds = toArray(p.melds);
+  return melds.map(function(m) { return toArray(m); });
 }
 
 function oppMelds() {
   var p = oppPlayer();
-  return (p && p.melds) ? p.melds : [];
+  if (!p || !p.melds) return [];
+  var melds = toArray(p.melds);
+  return melds.map(function(m) { return toArray(m); });
 }
 
 function gameDeck() {
-  return (app.game && app.game.deck) ? app.game.deck : [];
+  return app.game ? toArray(app.game.deck) : [];
 }
 
 function gameDiscard() {
-  return (app.game && app.game.discard) ? app.game.discard : [];
+  return app.game ? toArray(app.game.discard) : [];
 }
 
 // === Game Actions ===
 
 async function drawFromDeck() {
   if (!isMyTurn() || app.game.phase !== 'draw') return;
+  try {
   var deck = gameDeck();
+  // Firebase may return arrays as objects — normalize
+  if (deck && !Array.isArray(deck)) deck = Object.values(deck);
   if (deck.length === 0) {
     // Reshuffle discard pile
     var discard = gameDiscard();
@@ -421,10 +474,15 @@ async function drawFromDeck() {
 
   app.mustPlayCard = null;
   await db.ref('games/' + app.gameId).update(updates);
+  } catch (e) {
+    console.error('drawFromDeck error:', e);
+    showToast('Error drawing: ' + e.message);
+  }
 }
 
 async function drawFromDiscard(pickupIndex) {
   if (!isMyTurn() || app.game.phase !== 'draw') return;
+  try {
   var discard = gameDiscard();
   if (pickupIndex < 0 || pickupIndex >= discard.length) return;
 
@@ -453,7 +511,13 @@ async function drawFromDiscard(pickupIndex) {
   await db.ref('games/' + app.gameId).update(updates);
 
   if (mustPlay) {
-    showToast('You must play ' + cardDisplayName(mustPlay) + ' this turn!');
+    // Auto-select the must-play card
+    app.selectedCards = [mustPlay];
+    showToast('Must lay down ' + cardDisplayName(mustPlay) + ' before you can discard');
+  }
+  } catch (e) {
+    console.error('drawFromDiscard error:', e);
+    showToast('Error picking up: ' + e.message);
   }
 }
 
@@ -503,12 +567,13 @@ async function layDownMeld(cardIds) {
 async function layOffCard(cardId, targetPlayerSlot, meldIndex) {
   if (!isMyTurn() || app.game.phase !== 'play') return;
 
-  var targetMelds = app.game.players[targetPlayerSlot].melds || [];
+  var targetMelds = toArray(app.game.players[targetPlayerSlot].melds);
   if (meldIndex < 0 || meldIndex >= targetMelds.length) return;
 
-  var meld = targetMelds[meldIndex].slice();
-  if (!canLayOff(cardId, meld)) {
-    showToast('Card doesn\'t fit this meld');
+  var meld = toArray(targetMelds[meldIndex]).slice();
+  var layResult = validateLayOff(cardId, meld);
+  if (!layResult.valid) {
+    showToast(layResult.reason);
     return;
   }
 
@@ -545,9 +610,9 @@ async function layOffCard(cardId, targetPlayerSlot, meldIndex) {
 async function discardCard(cardId) {
   if (!isMyTurn() || app.game.phase !== 'play') return;
 
-  // Warn about must-play card
+  // Block discard if must-play card hasn't been laid down
   if (app.mustPlayCard) {
-    showToast('You still need to play ' + cardDisplayName(app.mustPlayCard) + '!');
+    showToast('Must lay down ' + cardDisplayName(app.mustPlayCard) + ' before discarding');
     return;
   }
 
@@ -808,11 +873,15 @@ function renderMelds(container, label, player, playerSlot, isOwn) {
     var meldGroup = document.createElement('div');
     meldGroup.className = 'meld-group';
 
-    // Make melds tappable for lay off when 1 card selected in play phase
-    if (isMyTurn() && app.game.phase === 'play' && app.selectedCards.length === 1) {
-      meldGroup.classList.add('layoff-target');
+    // Melds are always tappable during play phase — player tries to lay off, we validate
+    if (isMyTurn() && app.game.phase === 'play') {
+      meldGroup.style.cursor = 'pointer';
       (function(ps, mi) {
         meldGroup.addEventListener('click', function() {
+          if (app.selectedCards.length !== 1) {
+            showToast('Select exactly 1 card to lay off');
+            return;
+          }
           layOffCard(app.selectedCards[0], ps, mi);
         });
       })(playerSlot, m);
@@ -829,86 +898,99 @@ function renderMelds(container, label, player, playerSlot, isOwn) {
   }
 }
 
+function shakeButton(btn) {
+  btn.classList.add('error-shake');
+  setTimeout(function() { btn.classList.remove('error-shake'); }, 500);
+}
+
 function renderActionBar() {
   dom.actionBar.innerHTML = '';
 
   if (!isMyTurn()) {
-    var hint = document.createElement('div');
-    hint.className = 'action-hint';
-    hint.textContent = app.game.status === 'roundOver' ? '' : 'Waiting for ' + (oppPlayer() ? oppPlayer().name : 'opponent') + '...';
-    dom.actionBar.appendChild(hint);
+    if (app.game.status !== 'roundOver') {
+      var hint = document.createElement('div');
+      hint.className = 'action-hint';
+      hint.textContent = 'Waiting for ' + (oppPlayer() ? oppPlayer().name : 'opponent') + '...';
+      dom.actionBar.appendChild(hint);
+    }
     return;
   }
 
   if (app.game.phase === 'draw') {
-    var hint = document.createElement('div');
-    hint.className = 'action-hint';
-    hint.textContent = 'Draw a card from the deck or discard pile';
-    dom.actionBar.appendChild(hint);
+    // No hints — draw pile and discard pile are clickable
     return;
   }
 
   if (app.game.phase === 'play') {
     var hand = myHand();
-    var selCount = app.selectedCards.length;
 
-    if (selCount >= 3) {
-      var meldBtn = document.createElement('button');
-      meldBtn.className = 'btn btn-primary btn-small';
-      meldBtn.textContent = 'Lay Down Meld (' + selCount + ')';
-      meldBtn.addEventListener('click', function() {
-        layDownMeld(app.selectedCards.slice());
-      });
-      dom.actionBar.appendChild(meldBtn);
+    // If hand is empty, only show Go Out
+    if (hand.length === 0) {
+      var goOutBtn = document.createElement('button');
+      goOutBtn.className = 'btn btn-primary btn-small';
+      goOutBtn.textContent = 'Go Out!';
+      goOutBtn.addEventListener('click', goOut);
+      dom.actionBar.appendChild(goOutBtn);
+      return;
     }
 
-    if (selCount === 1) {
-      var discardBtn = document.createElement('button');
-      discardBtn.className = 'btn btn-secondary btn-small';
-      discardBtn.textContent = 'Discard ' + cardDisplayName(app.selectedCards[0]);
-      discardBtn.addEventListener('click', function() {
-        discardCard(app.selectedCards[0]);
-      });
-      dom.actionBar.appendChild(discardBtn);
-
-      // Show lay off hint
-      var allMelds = myMelds().concat(oppMelds());
-      if (allMelds.length > 0) {
-        var hint = document.createElement('div');
-        hint.className = 'action-hint';
-        hint.textContent = 'Or tap a meld to lay off';
-        dom.actionBar.appendChild(hint);
+    // "Lay Down" button — always visible
+    var layBtn = document.createElement('button');
+    layBtn.className = 'btn btn-primary btn-small';
+    layBtn.textContent = 'Lay Down';
+    layBtn.addEventListener('click', function() {
+      var sel = app.selectedCards.slice();
+      if (sel.length === 0) {
+        showToast('Select cards first');
+        shakeButton(layBtn);
+        return;
       }
-    }
-
-    if (selCount === 0) {
-      var hint = document.createElement('div');
-      hint.className = 'action-hint';
-      hint.textContent = 'Select cards to meld, lay off, or discard';
-      dom.actionBar.appendChild(hint);
-
-      if (hand.length === 0) {
-        var goOutBtn = document.createElement('button');
-        goOutBtn.className = 'btn btn-primary btn-small';
-        goOutBtn.textContent = 'Go Out!';
-        goOutBtn.addEventListener('click', goOut);
-        dom.actionBar.appendChild(goOutBtn);
+      if (sel.length < 3) {
+        showToast('Need at least 3 cards to lay down');
+        shakeButton(layBtn);
+        return;
       }
-    }
+      var result = validateMeld(sel);
+      if (!result.valid) {
+        showToast(result.reason);
+        shakeButton(layBtn);
+        return;
+      }
+      layDownMeld(sel);
+    });
+    dom.actionBar.appendChild(layBtn);
 
-    if (selCount === 2) {
-      var hint = document.createElement('div');
-      hint.className = 'action-hint';
-      hint.textContent = 'Select at least 3 cards for a meld, or 1 to discard/lay off';
-      dom.actionBar.appendChild(hint);
+    // "Discard" button — greyed out if must-play card hasn't been played yet
+    var discardBtn = document.createElement('button');
+    discardBtn.className = 'btn btn-secondary btn-small';
+    discardBtn.textContent = 'Discard';
+    if (app.mustPlayCard) {
+      discardBtn.disabled = true;
+      discardBtn.title = 'Must play ' + cardDisplayName(app.mustPlayCard) + ' first';
     }
+    discardBtn.addEventListener('click', function() {
+      if (app.mustPlayCard) {
+        showToast('Must lay down ' + cardDisplayName(app.mustPlayCard) + ' before discarding');
+        return;
+      }
+      if (app.selectedCards.length !== 1) {
+        showToast('Select exactly 1 card to discard');
+        shakeButton(discardBtn);
+        return;
+      }
+      discardCard(app.selectedCards[0]);
+    });
+    dom.actionBar.appendChild(discardBtn);
 
-    // Sort hand button
+    // Sort hand button — cycles through sort modes
     var sortBtn = document.createElement('button');
     sortBtn.className = 'btn btn-secondary btn-small';
-    sortBtn.textContent = 'Sort Hand';
+    sortBtn.textContent = SORT_LABELS[app.sortMode || 'suit'];
     sortBtn.addEventListener('click', async function() {
-      var sorted = sortHand(myHand());
+      var currentIdx = SORT_MODES.indexOf(app.sortMode || 'suit');
+      var nextIdx = (currentIdx + 1) % SORT_MODES.length;
+      app.sortMode = SORT_MODES[nextIdx];
+      var sorted = sortHand(myHand(), app.sortMode);
       await db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/hand').set(sorted);
       app.selectedCards = [];
     });
@@ -960,12 +1042,18 @@ function renderPlayerHand() {
 
 function renderStatusBar() {
   if (!app.game) return;
+  var me = myPlayer();
+  var myName = me ? me.name : '?';
+  var opp = oppPlayer();
+  var oppName = opp ? opp.name : 'Opponent';
+
+  // Always show who you are
+  document.getElementById('my-identity').textContent = 'You: ' + myName;
 
   if (isMyTurn()) {
     dom.turnText.textContent = 'Your turn — ' + (app.game.phase === 'draw' ? 'Draw' : 'Play / Discard');
     dom.turnText.className = 'turn-text your-turn';
   } else {
-    var oppName = oppPlayer() ? oppPlayer().name : 'Opponent';
     dom.turnText.textContent = oppName + "'s turn";
     dom.turnText.className = 'turn-text opponent-turn';
   }
@@ -1069,11 +1157,13 @@ function setupEventListeners() {
     });
   });
 
-  // Draw pile
-  dom.drawStack.addEventListener('click', function() {
-    if (isMyTurn() && app.game.phase === 'draw') {
-      drawFromDeck();
-    }
+  // Draw pile — click on the entire draw-pile area
+  document.getElementById('draw-pile').addEventListener('click', function() {
+    console.log('Draw pile clicked. isMyTurn:', isMyTurn(), 'phase:', app.game ? app.game.phase : 'no game', 'playerSlot:', app.playerSlot, 'currentTurn:', app.game ? app.game.currentTurn : 'n/a');
+    if (!app.game) { showToast('Game not loaded yet'); return; }
+    if (!isMyTurn()) { showToast('Not your turn — it\'s ' + (oppPlayer() ? oppPlayer().name + '\'s' : 'opponent\'s') + ' turn'); return; }
+    if (app.game.phase !== 'draw') { showToast('You already drew — play or discard'); return; }
+    drawFromDeck();
   });
 
   // Pickup confirm

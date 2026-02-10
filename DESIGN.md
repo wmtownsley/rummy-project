@@ -62,8 +62,12 @@ See `rummy_rules.md` for full rules. Key points for game design:
 - Clear indication of whose turn it is
 - **Draw phase:** Draw from deck (1 card) OR from discard pile (1 or more cards)
   - Multi-card discard pickup: take from top down to any card in the pile
-  - The deepest card taken MUST be played in a meld/lay off that turn
+  - The deepest card taken MUST be played in a meld/lay off that turn. This one should be auto-selected and, until it is laid down (alone or with a meld) there is no option to "Discard" - this is one of the rare places where the tool enforces correct play.
 - **Play phase:** Optionally lay down melds, optionally lay off on any table meld
+	- Details for UI design:
+		- User should be able to select/unselect one more multiple cards to play 
+		- There are two options, "Discard"  "Lay Down" that are always available to be pressed and will act on the cards selected at that time. One exception: if a card is auto-selected due to it being part of a multi-card pickup, here Discard is greyed out and cannot be chosen until the card is laid down. 
+		- When pressing Lay Down, any selected cards are laid down IFF they are legal to do so. If not, provide some visual feedback (the button visibly errors when pressed), and some helpful text to indicate why it's not allowed and which card was the offending card.
 - **Discard phase:** Discard one card to end turn (optional ONLY when going out)
 - If opponent is offline, your move is stored and they see the updated board when they return
 
