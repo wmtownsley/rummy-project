@@ -47,8 +47,6 @@ function cacheDom() {
   dom.showGameCode = document.getElementById('show-game-code');
   dom.showJoinLink = document.getElementById('show-join-link');
   dom.copyLinkBtn = document.getElementById('copy-link-btn');
-  dom.opponentDot = document.getElementById('opponent-dot');
-  dom.opponentNameDisplay = document.getElementById('opponent-name-display');
   dom.scoresDisplay = document.getElementById('scores-display');
   dom.opponentHand = document.getElementById('opponent-hand');
   dom.opponentMelds = document.getElementById('opponent-melds');
@@ -874,11 +872,8 @@ function renderGame() {
   var me = myPlayer();
   if (!me) return;
 
-  // --- Top bar ---
-  dom.opponentNameDisplay.textContent = opp ? opp.name : 'Waiting...';
-  if (opp) {
-    dom.opponentDot.className = 'online-dot ' + (opp.online ? 'online' : 'offline');
-  }
+  // --- Top bar: Player vs Player ---
+  renderPlayerPanels();
   renderScoresHeader();
 
   // --- Opponent hand ---
@@ -919,15 +914,52 @@ function renderGame() {
   }
 }
 
+function renderPlayerPanels() {
+  var me = myPlayer();
+  var opp = oppPlayer();
+  var myName = me ? me.name : '?';
+  var oppName = opp ? opp.name : 'Waiting...';
+
+  document.getElementById('me-name').textContent = myName;
+  document.getElementById('opp-name').textContent = oppName;
+
+  // My status
+  var meStatusEl = document.getElementById('me-status');
+  if (isMyTurn()) {
+    if (app.game.phase === 'draw') {
+      meStatusEl.innerHTML = '<span class="status-dot your-turn"></span><span class="status-text your-turn">Your Turn — Draw</span>';
+    } else {
+      meStatusEl.innerHTML = '<span class="status-dot playing"></span><span class="status-text your-turn">Your Turn — Play</span>';
+    }
+  } else {
+    meStatusEl.innerHTML = '<span class="status-dot online"></span><span class="status-text waiting">Waiting</span>';
+  }
+
+  // Opponent status
+  var oppStatusEl = document.getElementById('opp-status');
+  if (!opp) {
+    oppStatusEl.innerHTML = '<span class="status-dot offline"></span><span class="status-text offline">Not joined</span>';
+  } else if (!opp.online) {
+    oppStatusEl.innerHTML = '<span class="status-dot offline"></span><span class="status-text offline">Offline</span>';
+  } else if (!isMyTurn()) {
+    // It's opponent's turn and they're online
+    if (app.game.phase === 'draw') {
+      oppStatusEl.innerHTML = '<span class="status-dot playing"></span><span class="status-text playing">Drawing...</span>';
+    } else {
+      oppStatusEl.innerHTML = '<span class="status-dot playing"></span><span class="status-text playing">Playing...</span>';
+    }
+  } else {
+    oppStatusEl.innerHTML = '<span class="status-dot online"></span><span class="status-text waiting">Waiting</span>';
+  }
+}
+
 function renderScoresHeader() {
   var me = myPlayer();
   var opp = oppPlayer();
   if (!me || !opp) { dom.scoresDisplay.textContent = ''; return; }
   var myScore = me.score || 0;
   var oppScore = opp.score || 0;
-  var delta = myScore - oppScore;
-  var deltaStr = delta > 0 ? '+' + delta : '' + delta;
-  dom.scoresDisplay.textContent = 'You: ' + myScore + ' | ' + opp.name + ': ' + oppScore + ' (' + deltaStr + ')';
+  dom.scoresDisplay.textContent = myScore + ' - ' + oppScore;
 }
 
 function renderOpponentHand(opp) {
@@ -1229,17 +1261,9 @@ function renderStatusBar() {
   var opp = oppPlayer();
   var oppName = opp ? opp.name : 'Opponent';
 
-  // Always show who you are
-  document.getElementById('my-identity').textContent = 'You: ' + myName;
-
-  if (isMyTurn()) {
-    dom.turnText.textContent = 'Your turn — ' + (app.game.phase === 'draw' ? 'Draw' : 'Play / Discard');
-    dom.turnText.className = 'turn-text your-turn';
-  } else {
-    dom.turnText.textContent = oppName + "'s turn";
-    dom.turnText.className = 'turn-text opponent-turn';
-  }
-
+  // Status bar just shows last action (turn info is in header now)
+  document.getElementById('my-identity').textContent = '';
+  dom.turnText.textContent = '';
   dom.lastAction.textContent = app.game.lastAction || '';
 }
 
