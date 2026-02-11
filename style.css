@@ -246,8 +246,9 @@ html, body {
 #game-screen {
   display: none;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 #game-screen.active {
@@ -737,7 +738,7 @@ html, body {
 #pickup-confirm {
   display: none;
   position: fixed;
-  bottom: 180px;
+  bottom: 220px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;

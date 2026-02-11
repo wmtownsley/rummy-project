@@ -477,6 +477,7 @@ async function resumeGameWithToken(gameId, token) {
 function listenToGame(gameId) {
   if (app.listener) app.listener.off();
   app.listener = db.ref('games/' + gameId);
+  var renderDebounce = null;
   app.listener.on('value', function(snap) {
     var data = snap.val();
     if (!data) return;
@@ -492,7 +493,12 @@ function listenToGame(gameId) {
     if (data.status === 'playing' || data.status === 'roundOver') {
       showGame();
     }
-    renderGame();
+
+    // Debounce renders to prevent rapid DOM rebuilds from killing click handlers
+    clearTimeout(renderDebounce);
+    renderDebounce = setTimeout(function() {
+      renderGame();
+    }, 80);
   });
 
   // Set up presence separately (not inside the listener — that causes infinite loops)
@@ -1485,7 +1491,22 @@ function toggleCardSelection(cardId) {
   } else {
     app.selectedCards.splice(idx, 1);
   }
-  renderGame();
+  // Lightweight update: just toggle card visuals and refresh action bar
+  updateCardSelectionVisuals();
+  renderActionBar();
+}
+
+function updateCardSelectionVisuals() {
+  // Update selected state on existing card elements without full DOM rebuild
+  var cardEls = dom.playerHand.querySelectorAll('.card[data-card]');
+  for (var i = 0; i < cardEls.length; i++) {
+    var cardId = cardEls[i].getAttribute('data-card');
+    if (app.selectedCards.indexOf(cardId) !== -1) {
+      cardEls[i].classList.add('selected');
+    } else {
+      cardEls[i].classList.remove('selected');
+    }
+  }
 }
 
 function selectDiscardPickup(index) {
