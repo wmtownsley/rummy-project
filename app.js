@@ -1095,18 +1095,40 @@ function renderActionBar() {
         shakeButton(layBtn);
         return;
       }
-      if (sel.length < 3) {
-        showToast('Need at least 3 cards to lay down');
-        shakeButton(layBtn);
+
+      // 3+ cards: try as a new meld
+      if (sel.length >= 3) {
+        var result = validateMeld(sel);
+        if (!result.valid) {
+          showToast(result.reason);
+          shakeButton(layBtn);
+          return;
+        }
+        layDownMeld(sel);
         return;
       }
-      var result = validateMeld(sel);
-      if (!result.valid) {
-        showToast(result.reason);
-        shakeButton(layBtn);
-        return;
+
+      // 1-2 cards: try to lay off on an existing meld
+      if (sel.length === 1) {
+        var card = sel[0];
+        var matches = findLayOffTargets(card);
+        if (matches.length === 1) {
+          // Exactly one match — lay off automatically
+          layOffCard(card, matches[0].playerSlot, matches[0].meldIndex);
+          return;
+        } else if (matches.length > 1) {
+          showToast('Multiple melds match — tap the one you want to add to');
+          return;
+        } else {
+          showToast(cardDisplayName(card) + ' doesn\'t fit any meld on the table');
+          shakeButton(layBtn);
+          return;
+        }
       }
-      layDownMeld(sel);
+
+      // 2 cards — not a valid new meld, try laying off one at a time
+      showToast('Select 1 card to add to a meld, or 3+ for a new meld');
+      shakeButton(layBtn);
     });
     dom.actionBar.appendChild(layBtn);
 
@@ -1264,6 +1286,27 @@ function showScoreboard() {
     dom.scoreboardOverlay.classList.remove('active');
   });
   dom.scoreboardActions.appendChild(closeBtn);
+}
+
+// === Lay Off Helpers ===
+
+function findLayOffTargets(cardId) {
+  // Find all melds (both players) that this card can extend
+  var matches = [];
+  var slots = [app.playerSlot, otherPlayer(app.playerSlot)];
+  for (var s = 0; s < slots.length; s++) {
+    var playerSlot = slots[s];
+    var player = app.game.players[playerSlot];
+    if (!player) continue;
+    var melds = toArray(player.melds);
+    for (var m = 0; m < melds.length; m++) {
+      var meld = toArray(melds[m]);
+      if (canLayOff(cardId, meld)) {
+        matches.push({ playerSlot: playerSlot, meldIndex: m });
+      }
+    }
+  }
+  return matches;
 }
 
 // === Card Selection ===
