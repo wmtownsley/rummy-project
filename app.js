@@ -1048,23 +1048,15 @@ function renderDiscardPile() {
     empty.className = 'empty-pile';
     empty.textContent = 'Empty';
     dom.discardCascade.appendChild(empty);
-    dom.discardCascade.style.height = 'var(--card-height)';
     return;
   }
 
   var isDrawPhase = isMyTurn() && app.game.phase === 'draw';
-  // Dynamic offset: shrink as pile grows
-  var baseOffset = 28;
-  if (discard.length > 10) baseOffset = 22;
-  if (discard.length > 15) baseOffset = 18;
-
-  var totalHeight = (discard.length - 1) * baseOffset + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height'));
-  dom.discardCascade.style.height = totalHeight + 'px';
 
   for (var i = 0; i < discard.length; i++) {
     var cardEl = document.createElement('div');
     cardEl.className = 'discard-card card';
-    cardEl.style.top = (i * baseOffset) + 'px';
+    if (i > 0) cardEl.classList.add('overlap');
     cardEl.style.zIndex = i + 1;
     cardEl.innerHTML = '<img src="' + cardImagePath(discard[i]) + '" alt="' + cardDisplayName(discard[i]) + '">';
 
@@ -1088,8 +1080,8 @@ function renderDiscardPile() {
     dom.discardCascade.appendChild(cardEl);
   }
 
-  // Auto-scroll to bottom (most recent cards)
-  dom.discardPile.scrollTop = dom.discardPile.scrollHeight;
+  // Auto-scroll to right (most recent cards)
+  dom.discardPile.scrollLeft = dom.discardPile.scrollWidth;
 }
 
 function renderMelds(container, label, player, playerSlot, isOwn) {
