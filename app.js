@@ -1138,10 +1138,12 @@ function renderMelds(container, label, player, playerSlot, isOwn) {
       })(displayGroups[m].tableMeldIdx);
     }
 
-    var cards = displayGroups[m].cards;
+    var cards = sortMeldForDisplay(displayGroups[m].cards);
     for (var c = 0; c < cards.length; c++) {
       var cardEl = document.createElement('div');
-      cardEl.className = 'card';
+      cardEl.className = 'card meld-card-overlap';
+      if (c > 0) cardEl.style.marginLeft = '-25px';
+      cardEl.style.zIndex = c + 1;
       cardEl.innerHTML = '<img src="' + cardImagePath(cards[c]) + '" alt="' + cardDisplayName(cards[c]) + '">';
       meldGroup.appendChild(cardEl);
     }

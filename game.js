@@ -197,6 +197,52 @@ function canLayOff(card, meld) {
   return isValidMeld(extended);
 }
 
+// Sort cards for display within a meld (runs sorted by rank order, sets by suit)
+function sortMeldForDisplay(cards) {
+  if (cards.length <= 1) return cards.slice();
+  var sorted = cards.slice();
+
+  // Check if it's a set (all same rank) or run (all same suit)
+  var suits = new Set(sorted.map(function(c) { return cardSuit(c); }));
+  var ranks = new Set(sorted.map(function(c) { return cardRank(c); }));
+
+  if (ranks.size === 1) {
+    // Set — sort by suit
+    var suitOrder = { C: 0, D: 1, H: 2, S: 3 };
+    sorted.sort(function(a, b) {
+      return suitOrder[cardSuit(a)] - suitOrder[cardSuit(b)];
+    });
+  } else {
+    // Run or partial run — sort by rank, handling wrapping
+    // Find the best starting position for the circular sort
+    var indices = sorted.map(function(c) { return rankIndex(cardRank(c)); });
+    
+    // Find the largest gap to determine where the run "starts"
+    var withCards = indices.map(function(ri, i) { return { ri: ri, card: sorted[i] }; });
+    withCards.sort(function(a, b) { return a.ri - b.ri; });
+    
+    // Find largest gap between consecutive sorted indices (mod 13)
+    var bestStart = 0;
+    var maxGap = 0;
+    for (var i = 0; i < withCards.length; i++) {
+      var next = (i + 1) % withCards.length;
+      var gap = (withCards[next].ri - withCards[i].ri + 13) % 13;
+      if (gap > maxGap) {
+        maxGap = gap;
+        bestStart = next;
+      }
+    }
+    
+    // Reorder starting from after the largest gap
+    var result = [];
+    for (var i = 0; i < withCards.length; i++) {
+      result.push(withCards[(bestStart + i) % withCards.length].card);
+    }
+    sorted = result;
+  }
+  return sorted;
+}
+
 // --- Scoring ---
 
 function sumPoints(cards) {

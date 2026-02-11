@@ -411,11 +411,12 @@ html, body {
   display: flex;
   background: rgba(0,0,0,0.2);
   border-radius: 6px;
-  padding: 3px;
-  gap: 2px;
+  padding: 3px 3px 3px 3px;
+  gap: 0;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border var(--transition);
+  overflow: visible;
 }
 
 .meld-group.layoff-target {
@@ -426,6 +427,11 @@ html, body {
 .meld-group .card {
   width: 65px;
   height: 94px;
+  position: relative;
+}
+
+.meld-group .card.meld-card-overlap {
+  /* Overlap handled by negative margin in JS */
 }
 
 /* Table area */
