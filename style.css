@@ -350,6 +350,23 @@ html, body {
   white-space: nowrap;
 }
 
+.menu-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 14px;
+  padding: 2px 8px;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: all var(--transition);
+}
+
+.menu-btn:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--white);
+}
+
 /* Opponent hand */
 #opponent-hand {
   display: flex;

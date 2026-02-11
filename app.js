@@ -1463,8 +1463,8 @@ function setupEventListeners() {
     }
   });
 
-  // Back to lobby (top-left area, via opponent name double-tap or menu)
-  document.getElementById('top-bar').addEventListener('dblclick', function() {
+  // Menu button — leave game
+  document.getElementById('menu-btn').addEventListener('click', function() {
     if (confirm('Leave this game and return to lobby?')) {
       if (app.listener) app.listener.off();
       app.gameId = null;
