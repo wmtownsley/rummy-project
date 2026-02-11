@@ -541,19 +541,44 @@ function myHand() {
   return p ? toArray(p.hand) : [];
 }
 
-function myMelds() {
-  var p = myPlayer();
-  if (!p || !p.melds) return [];
-  // Melds is an array of arrays — normalize both levels
-  var melds = toArray(p.melds);
+// Shared table melds (all melds on the table)
+function allTableMelds() {
+  if (!app.game || !app.game.tableMelds) return [];
+  var melds = toArray(app.game.tableMelds);
   return melds.map(function(m) { return toArray(m); });
 }
 
+// Card ownership map: cardId -> playerSlot
+function getCardOwnership() {
+  return (app.game && app.game.cardOwnership) ? app.game.cardOwnership : {};
+}
+
+// Get cards a specific player owns from table melds (for display/scoring)
+function playerMeldCards(playerSlot) {
+  var ownership = getCardOwnership();
+  var melds = allTableMelds();
+  var result = [];
+  // Group consecutive owned cards within each meld into display groups
+  for (var m = 0; m < melds.length; m++) {
+    var owned = [];
+    for (var c = 0; c < melds[m].length; c++) {
+      if (ownership[melds[m][c]] === playerSlot) {
+        owned.push(melds[m][c]);
+      }
+    }
+    if (owned.length > 0) {
+      result.push(owned);
+    }
+  }
+  return result;
+}
+
+function myMelds() {
+  return playerMeldCards(app.playerSlot);
+}
+
 function oppMelds() {
-  var p = oppPlayer();
-  if (!p || !p.melds) return [];
-  var melds = toArray(p.melds);
-  return melds.map(function(m) { return toArray(m); });
+  return playerMeldCards(otherPlayer(app.playerSlot));
 }
 
 function gameDeck() {
@@ -668,18 +693,24 @@ async function layDownMeld(cardIds) {
     meldCards.push(cardIds[i]);
   }
 
-  var melds = myMelds().slice();
-  melds.push(meldCards);
-
   // Check if must-play card was included
   if (app.mustPlayCard && cardIds.indexOf(app.mustPlayCard) !== -1) {
     app.mustPlayCard = null;
   }
 
+  // Add to shared tableMelds and cardOwnership
+  var tMelds = allTableMelds();
+  tMelds.push(meldCards);
+  var ownership = getCardOwnership();
+  for (var i = 0; i < meldCards.length; i++) {
+    ownership[meldCards[i]] = app.playerSlot;
+  }
+
   var updates = {};
   updates['players/' + app.playerSlot + '/hand'] = hand;
-  updates['players/' + app.playerSlot + '/melds'] = melds;
-  updates['lastAction'] = myPlayer().name + ' laid down a meld: ' + meldCards.map(cardDisplayName).join(' ');
+  updates['tableMelds'] = tMelds;
+  updates['cardOwnership'] = ownership;
+  updates['lastAction'] = myPlayer().name + ' laid down: ' + meldCards.map(cardDisplayName).join(' ');
   updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
 
   // Check if going out (hand empty)
@@ -698,10 +729,11 @@ async function layDownMeld(cardIds) {
 async function layOffCard(cardId, targetPlayerSlot, meldIndex) {
   if (!isMyTurn() || app.game.phase !== 'play') return;
 
-  var targetMelds = toArray(app.game.players[targetPlayerSlot].melds);
-  if (meldIndex < 0 || meldIndex >= targetMelds.length) return;
+  // Validate against the full table meld
+  var tMelds = allTableMelds();
+  if (meldIndex < 0 || meldIndex >= tMelds.length) return;
 
-  var meld = toArray(targetMelds[meldIndex]).slice();
+  var meld = tMelds[meldIndex].slice();
   var layResult = validateLayOff(cardId, meld);
   if (!layResult.valid) {
     showToast(layResult.reason);
@@ -719,9 +751,15 @@ async function layOffCard(cardId, targetPlayerSlot, meldIndex) {
     app.mustPlayCard = null;
   }
 
+  // Update the table meld and ownership (card credited to ME, not meld owner)
+  tMelds[meldIndex] = meld;
+  var ownership = getCardOwnership();
+  ownership[cardId] = app.playerSlot;
+
   var updates = {};
   updates['players/' + app.playerSlot + '/hand'] = hand;
-  updates['players/' + targetPlayerSlot + '/melds/' + meldIndex] = meld;
+  updates['tableMelds'] = tMelds;
+  updates['cardOwnership'] = ownership;
   updates['lastAction'] = myPlayer().name + ' laid off ' + cardDisplayName(cardId);
   updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
 
@@ -794,20 +832,35 @@ async function goOut() {
 }
 
 async function endRound() {
-  // Read everything fresh from Firebase to avoid stale state
-  var snap = await db.ref('games/' + app.gameId + '/players').once('value');
-  var players = snap.val();
-  var p1Melds = players.player1.melds || [];
-  var p2Melds = players.player2.melds || [];
+  // Read everything fresh from Firebase
+  var gameSnap = await db.ref('games/' + app.gameId).once('value');
+  var gameData = gameSnap.val();
+  var players = gameData.players;
   var p1Hand = players.player1.hand || [];
   var p2Hand = players.player2.hand || [];
 
-  var p1Score = calculateRoundScore(p1Melds, p1Hand);
-  var p2Score = calculateRoundScore(p2Melds, p2Hand);
+  // Score melds using cardOwnership (credit to player who laid each card)
+  var ownership = gameData.cardOwnership || {};
+  var tMelds = toArray(gameData.tableMelds || []);
+  var p1MeldPoints = 0;
+  var p2MeldPoints = 0;
+  for (var m = 0; m < tMelds.length; m++) {
+    var meld = toArray(tMelds[m]);
+    for (var c = 0; c < meld.length; c++) {
+      var pts = cardPoints(meld[c]);
+      if (ownership[meld[c]] === 'player1') p1MeldPoints += pts;
+      else if (ownership[meld[c]] === 'player2') p2MeldPoints += pts;
+    }
+  }
 
-  var history = app.game.scoreHistory || [];
+  var p1HandPoints = sumPoints(p1Hand);
+  var p2HandPoints = sumPoints(p2Hand);
+  var p1Score = p1MeldPoints - p1HandPoints;
+  var p2Score = p2MeldPoints - p2HandPoints;
+
+  var history = gameData.scoreHistory || [];
   history.push({
-    round: app.game.roundNumber || 1,
+    round: gameData.roundNumber || 1,
     player1: p1Score,
     player2: p2Score
   });
@@ -845,9 +898,9 @@ async function startNewRound() {
   updates['phase'] = 'draw';
   updates['roundNumber'] = roundNum;
   updates['players/player1/hand'] = hand1;
-  updates['players/player1/melds'] = [];
   updates['players/player2/hand'] = hand2;
-  updates['players/player2/melds'] = [];
+  updates['tableMelds'] = [];
+  updates['cardOwnership'] = {};
   updates['lastAction'] = 'Round ' + roundNum + ' — Cards dealt!';
   updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
 
@@ -953,16 +1006,18 @@ function renderScoresHeader() {
   var opp = oppPlayer();
   if (!me || !opp) { dom.scoresDisplay.textContent = ''; return; }
 
-  // Center score: current round meld points only (visible laid-down cards)
-  var myMeldPts = 0;
-  var myMeldsArr = myMelds();
-  for (var i = 0; i < myMeldsArr.length; i++) {
-    myMeldPts += sumPoints(myMeldsArr[i]);
-  }
-  var oppMeldPts = 0;
-  var oppMeldsArr = oppMelds();
-  for (var i = 0; i < oppMeldsArr.length; i++) {
-    oppMeldPts += sumPoints(oppMeldsArr[i]);
+  // Center score: current round meld points by ownership
+  var ownership = getCardOwnership();
+  var tMelds = allTableMelds();
+  var myMeldPts = 0, oppMeldPts = 0;
+  var oppSlot = otherPlayer(app.playerSlot);
+  for (var m = 0; m < tMelds.length; m++) {
+    for (var c = 0; c < tMelds[m].length; c++) {
+      var cardId = tMelds[m][c];
+      var pts = cardPoints(cardId);
+      if (ownership[cardId] === app.playerSlot) myMeldPts += pts;
+      else if (ownership[cardId] === oppSlot) oppMeldPts += pts;
+    }
   }
   dom.scoresDisplay.textContent = myMeldPts + ' - ' + oppMeldPts;
 
@@ -1038,46 +1093,62 @@ function renderDiscardPile() {
 }
 
 function renderMelds(container, label, player, playerSlot, isOwn) {
-  // Keep the label, clear the rest
   var existingLabel = label;
   container.innerHTML = '';
   container.appendChild(existingLabel);
 
-  var melds = (player && player.melds) ? player.melds : [];
-  if (melds.length === 0) {
+  // Get this player's cards grouped by which table meld they came from
+  var tMelds = allTableMelds();
+  var ownership = getCardOwnership();
+  var displayGroups = []; // { tableMeldIdx, cards }
+
+  for (var tm = 0; tm < tMelds.length; tm++) {
+    var owned = [];
+    for (var c = 0; c < tMelds[tm].length; c++) {
+      if (ownership[tMelds[tm][c]] === playerSlot) {
+        owned.push(tMelds[tm][c]);
+      }
+    }
+    if (owned.length > 0) {
+      displayGroups.push({ tableMeldIdx: tm, cards: owned });
+    }
+  }
+
+  if (displayGroups.length === 0) {
     existingLabel.textContent = '';
     return;
   }
   existingLabel.textContent = (isOwn ? 'Your' : (player.name + "'s")) + ' melds:';
 
-  for (var m = 0; m < melds.length; m++) {
+  for (var m = 0; m < displayGroups.length; m++) {
     var meldGroup = document.createElement('div');
     meldGroup.className = 'meld-group';
 
-    // Melds are always tappable during play phase — player tries to lay off, we validate
-    if (isMyTurn() && app.game.phase === 'play') {
+    // Tappable for lay off during play phase
+    if (isMyTurn() && app.game && app.game.phase === 'play') {
       meldGroup.style.cursor = 'pointer';
-      (function(ps, mi) {
+      (function(mi) {
         meldGroup.addEventListener('click', function() {
           if (app.selectedCards.length !== 1) {
             showToast('Select exactly 1 card to lay off');
             return;
           }
-          layOffCard(app.selectedCards[0], ps, mi);
+          layOffCard(app.selectedCards[0], null, mi);
         });
-      })(playerSlot, m);
+      })(displayGroups[m].tableMeldIdx);
     }
 
-    var meld = melds[m];
-    for (var c = 0; c < meld.length; c++) {
+    var cards = displayGroups[m].cards;
+    for (var c = 0; c < cards.length; c++) {
       var cardEl = document.createElement('div');
       cardEl.className = 'card';
-      cardEl.innerHTML = '<img src="' + cardImagePath(meld[c]) + '" alt="' + cardDisplayName(meld[c]) + '">';
+      cardEl.innerHTML = '<img src="' + cardImagePath(cards[c]) + '" alt="' + cardDisplayName(cards[c]) + '">';
       meldGroup.appendChild(cardEl);
     }
     container.appendChild(meldGroup);
   }
 }
+
 
 function shakeButton(btn) {
   btn.classList.add('error-shake');
@@ -1399,19 +1470,12 @@ function animateDrawnCard(cardId, callback) {
 // === Lay Off Helpers ===
 
 function findLayOffTargets(cardId) {
-  // Find all melds (both players) that this card can extend
+  // Find all table melds this card can extend
   var matches = [];
-  var slots = [app.playerSlot, otherPlayer(app.playerSlot)];
-  for (var s = 0; s < slots.length; s++) {
-    var playerSlot = slots[s];
-    var player = app.game.players[playerSlot];
-    if (!player) continue;
-    var melds = toArray(player.melds);
-    for (var m = 0; m < melds.length; m++) {
-      var meld = toArray(melds[m]);
-      if (canLayOff(cardId, meld)) {
-        matches.push({ playerSlot: playerSlot, meldIndex: m });
-      }
+  var tMelds = allTableMelds();
+  for (var m = 0; m < tMelds.length; m++) {
+    if (canLayOff(cardId, tMelds[m])) {
+      matches.push({ playerSlot: null, meldIndex: m });
     }
   }
   return matches;
