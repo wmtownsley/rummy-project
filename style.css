@@ -405,8 +405,8 @@ html, body {
 }
 
 .meld-group .card {
-  width: 52px;
-  height: 75px;
+  width: 65px;
+  height: 94px;
 }
 
 /* Table area */
@@ -823,8 +823,8 @@ html, body {
     height: 52px;
   }
   .meld-group .card {
-    width: 42px;
-    height: 61px;
+    width: 52px;
+    height: 75px;
   }
 }
 
@@ -839,8 +839,8 @@ html, body {
     margin: 0 -6px;
   }
   .meld-group .card {
-    width: 60px;
-    height: 87px;
+    width: 75px;
+    height: 109px;
   }
 }
 

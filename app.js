@@ -604,11 +604,6 @@ async function drawFromDeck() {
 
   app.mustPlayCard = null;
 
-  // Animate the card flip before updating state
-  await new Promise(function(resolve) {
-    animateDrawnCard(card, resolve);
-  });
-
   await db.ref('games/' + app.gameId).update(updates);
   } catch (e) {
     console.error('drawFromDeck error:', e);
