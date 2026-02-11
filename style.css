@@ -311,6 +311,12 @@ html, body {
   margin-top: 1px;
 }
 
+.panel-total {
+  font-size: 0.7em;
+  margin-top: 1px;
+  color: var(--text-muted);
+}
+
 .panel-status .status-dot {
   width: 7px;
   height: 7px;
@@ -355,11 +361,13 @@ html, body {
   border: 1px solid rgba(255,255,255,0.2);
   color: var(--text-muted);
   border-radius: 6px;
-  font-size: 14px;
-  padding: 2px 8px;
+  font-size: 16px;
+  padding: 4px 10px;
   cursor: pointer;
-  margin-top: 2px;
   transition: all var(--transition);
+  flex-shrink: 0;
+  margin-right: 8px;
+  align-self: center;
 }
 
 .menu-btn:hover {

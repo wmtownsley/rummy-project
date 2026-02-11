@@ -952,9 +952,25 @@ function renderScoresHeader() {
   var me = myPlayer();
   var opp = oppPlayer();
   if (!me || !opp) { dom.scoresDisplay.textContent = ''; return; }
-  var myScore = me.score || 0;
-  var oppScore = opp.score || 0;
-  dom.scoresDisplay.textContent = myScore + ' - ' + oppScore;
+
+  // Center score: current round meld points only (visible laid-down cards)
+  var myMeldPts = 0;
+  var myMeldsArr = myMelds();
+  for (var i = 0; i < myMeldsArr.length; i++) {
+    myMeldPts += sumPoints(myMeldsArr[i]);
+  }
+  var oppMeldPts = 0;
+  var oppMeldsArr = oppMelds();
+  for (var i = 0; i < oppMeldsArr.length; i++) {
+    oppMeldPts += sumPoints(oppMeldsArr[i]);
+  }
+  dom.scoresDisplay.textContent = myMeldPts + ' - ' + oppMeldPts;
+
+  // Total Points: cumulative from completed rounds only (stored in player.score)
+  var myTotal = me.score || 0;
+  var oppTotal = opp.score || 0;
+  document.getElementById('me-total').textContent = 'Total: ' + myTotal;
+  document.getElementById('opp-total').textContent = 'Total: ' + oppTotal;
 }
 
 function renderOpponentHand(opp) {
