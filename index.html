@@ -63,7 +63,8 @@
           <div class="panel-total" id="me-total"></div>
         </div>
         <div class="vs-divider">
-          <div class="score-info" id="scores-display" style="cursor:pointer" title="View scoreboard">Scores</div>
+          <div class="score-info" id="scores-display">Scores</div>
+          <button class="history-btn" id="history-btn" title="Game History">History</button>
         </div>
         <div class="player-panel opp-panel" id="opp-panel">
           <div class="panel-name"><span id="opp-name">?</span></div>
@@ -125,6 +126,22 @@
         <h2>Scoreboard</h2>
         <div id="scoreboard-content"></div>
         <div class="round-actions" id="scoreboard-actions"></div>
+      </div>
+    </div>
+
+    <!-- History modal -->
+    <div id="history-overlay">
+      <div id="history-modal">
+        <h2>Game History</h2>
+        <div id="history-table-container"></div>
+        <div class="history-actions">
+          <button class="btn btn-primary btn-small" id="history-export-btn">Export CSV</button>
+          <label class="btn btn-secondary btn-small">
+            Import CSV
+            <input type="file" id="history-import-input" accept=".csv" style="display:none">
+          </label>
+          <button class="btn btn-secondary btn-small" id="history-close-btn">Close</button>
+        </div>
       </div>
     </div>
 

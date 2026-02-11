@@ -780,6 +780,92 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* --- History Button & Modal --- */
+.history-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: all var(--transition);
+}
+
+.history-btn:hover {
+  background: rgba(255,255,255,0.2);
+  color: var(--white);
+}
+
+#history-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+#history-overlay.active {
+  display: flex;
+}
+
+#history-modal {
+  background: var(--felt-dark);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 2px solid var(--gold);
+}
+
+#history-modal h2 {
+  text-align: center;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+#history-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+#history-table-container th,
+#history-table-container td {
+  padding: 5px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+#history-table-container th {
+  color: var(--gold);
+  font-weight: 600;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+#history-table-container .score-positive { color: #4caf50; }
+#history-table-container .score-negative { color: var(--red); }
+
+#history-table-container .total-row {
+  font-weight: bold;
+  border-top: 2px solid var(--gold);
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 /* --- Draw Card Animation --- */
 #drawn-card-overlay {
   display: none;

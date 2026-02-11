@@ -837,10 +837,19 @@ async function goOut() {
   await endRound();
 }
 
+var endingRound = false;
 async function endRound() {
+  // Guard against double-calls (e.g., rapid button clicks)
+  if (endingRound) return;
+  endingRound = true;
+
+  try {
   // Read everything fresh from Firebase
   var gameSnap = await db.ref('games/' + app.gameId).once('value');
   var gameData = gameSnap.val();
+
+  // If round already ended, don't score again
+  if (gameData.status === 'roundOver') { endingRound = false; return; }
   var players = gameData.players;
   var p1Hand = players.player1.hand || [];
   var p2Hand = players.player2.hand || [];
@@ -881,6 +890,9 @@ async function endRound() {
   updates['players/player2/score'] = p2Total;
 
   await db.ref('games/' + app.gameId).update(updates);
+  } finally {
+    endingRound = false;
+  }
 }
 
 async function startNewRound() {
@@ -1524,6 +1536,149 @@ function selectDiscardPickup(index) {
   renderGame();
 }
 
+// === History Modal ===
+
+function showHistory() {
+  var overlay = document.getElementById('history-overlay');
+  var container = document.getElementById('history-table-container');
+  overlay.classList.add('active');
+
+  if (!app.game || !app.game.players) {
+    container.innerHTML = '<p style="text-align:center;color:var(--text-muted)">No game data</p>';
+    return;
+  }
+
+  var p1Name = app.game.players.player1.name;
+  var p2Name = app.game.players.player2.name;
+  var history = toArray(app.game.scoreHistory || []);
+
+  var html = '<table>';
+  html += '<tr><th>Round</th><th>' + p1Name + '</th><th>' + p2Name + '</th>';
+  html += '<th>' + p1Name + ' Total</th><th>' + p2Name + ' Total</th><th>Delta</th></tr>';
+
+  var p1Running = 0, p2Running = 0;
+  for (var i = 0; i < history.length; i++) {
+    var r = history[i];
+    p1Running += r.player1;
+    p2Running += r.player2;
+    var delta = p1Running - p2Running;
+    var deltaStr = delta > 0 ? '+' + delta : '' + delta;
+
+    html += '<tr>';
+    html += '<td>' + r.round + '</td>';
+    html += '<td class="' + (r.player1 >= 0 ? 'score-positive' : 'score-negative') + '">' + (r.player1 >= 0 ? '+' : '') + r.player1 + '</td>';
+    html += '<td class="' + (r.player2 >= 0 ? 'score-positive' : 'score-negative') + '">' + (r.player2 >= 0 ? '+' : '') + r.player2 + '</td>';
+    html += '<td>' + p1Running + '</td>';
+    html += '<td>' + p2Running + '</td>';
+    html += '<td>' + deltaStr + '</td>';
+    html += '</tr>';
+  }
+
+  if (history.length > 0) {
+    var finalDelta = p1Running - p2Running;
+    var leader = finalDelta > 0 ? p1Name : (finalDelta < 0 ? p2Name : 'Tied');
+    html += '<tr class="total-row">';
+    html += '<td>Total</td>';
+    html += '<td>' + p1Running + '</td>';
+    html += '<td>' + p2Running + '</td>';
+    html += '<td colspan="2">' + leader + (finalDelta !== 0 ? ' leads by ' + Math.abs(finalDelta) : '') + '</td>';
+    html += '<td></td></tr>';
+  } else {
+    html += '<tr><td colspan="6" style="color:var(--text-muted)">No rounds played yet</td></tr>';
+  }
+
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function exportHistoryCSV() {
+  if (!app.game || !app.game.players) return;
+
+  var p1Name = app.game.players.player1.name;
+  var p2Name = app.game.players.player2.name;
+  var history = toArray(app.game.scoreHistory || []);
+
+  var lines = [];
+  lines.push('Round,' + p1Name + ',' + p2Name + ',' + p1Name + ' Total,' + p2Name + ' Total,Delta');
+
+  var p1Running = 0, p2Running = 0;
+  for (var i = 0; i < history.length; i++) {
+    var r = history[i];
+    p1Running += r.player1;
+    p2Running += r.player2;
+    var delta = p1Running - p2Running;
+    lines.push(r.round + ',' + r.player1 + ',' + r.player2 + ',' + p1Running + ',' + p2Running + ',' + delta);
+  }
+
+  var csv = lines.join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'rummy2go_' + (app.gameId || 'game') + '_history.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('History exported!');
+}
+
+function importHistoryCSV(file) {
+  if (!file || !app.gameId) return;
+
+  var reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      var text = e.target.result.trim();
+      var lines = text.split('\n');
+      if (lines.length < 2) { showToast('CSV is empty'); return; }
+
+      // Parse header to get player names
+      var header = lines[0].split(',');
+      var p1Name = header[1] ? header[1].trim() : null;
+      var p2Name = header[2] ? header[2].trim() : null;
+
+      // Parse rows
+      var history = [];
+      var p1Total = 0, p2Total = 0;
+      for (var i = 1; i < lines.length; i++) {
+        var cols = lines[i].split(',');
+        if (cols.length < 3) continue;
+        var round = parseInt(cols[0]);
+        var p1Score = parseInt(cols[1]);
+        var p2Score = parseInt(cols[2]);
+        if (isNaN(round) || isNaN(p1Score) || isNaN(p2Score)) continue;
+        p1Total += p1Score;
+        p2Total += p2Score;
+        history.push({ round: round, player1: p1Score, player2: p2Score });
+      }
+
+      if (history.length === 0) { showToast('No valid rows in CSV'); return; }
+
+      // Update Firebase with imported history
+      var updates = {};
+      updates['scoreHistory'] = history;
+      updates['players/player1/score'] = p1Total;
+      updates['players/player2/score'] = p2Total;
+      updates['roundNumber'] = history.length;
+
+      // Optionally update player names if they differ
+      if (p1Name && app.game.players.player1.name !== p1Name) {
+        updates['players/player1/name'] = p1Name;
+      }
+      if (p2Name && app.game.players.player2.name !== p2Name) {
+        updates['players/player2/name'] = p2Name;
+      }
+
+      await db.ref('games/' + app.gameId).update(updates);
+      showToast('Imported ' + history.length + ' rounds!');
+      showHistory(); // Refresh the display
+    } catch (err) {
+      console.error('Import error:', err);
+      showToast('Error importing: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 // === Event Listeners ===
 
 function setupEventListeners() {
@@ -1578,6 +1733,22 @@ function setupEventListeners() {
   dom.scoresDisplay.addEventListener('click', function() {
     if (app.game && app.game.scoreHistory && app.game.scoreHistory.length > 0) {
       showScoreboard();
+    }
+  });
+
+  // History modal
+  document.getElementById('history-btn').addEventListener('click', showHistory);
+  document.getElementById('history-close-btn').addEventListener('click', function() {
+    document.getElementById('history-overlay').classList.remove('active');
+  });
+  document.getElementById('history-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+  document.getElementById('history-export-btn').addEventListener('click', exportHistoryCSV);
+  document.getElementById('history-import-input').addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      importHistoryCSV(e.target.files[0]);
+      e.target.value = ''; // Reset so same file can be re-imported
     }
   });
 
