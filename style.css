@@ -343,12 +343,6 @@ html, body {
   flex-shrink: 0;
 }
 
-.vs-text {
-  font-size: 0.8em;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
 .vs-divider .score-info {
   font-size: 0.7em;
   color: var(--text-muted);
@@ -464,10 +458,11 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
-#discard-pile .discard-label {
+.pile-label {
   font-size: 0.75em;
   color: var(--text-muted);
   margin-bottom: 4px;
+  text-align: center;
 }
 
 #discard-pile .discard-cascade {
