@@ -605,6 +605,12 @@ async function drawFromDeck() {
   updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
 
   app.mustPlayCard = null;
+
+  // Animate the card flip before updating state
+  await new Promise(function(resolve) {
+    animateDrawnCard(card, resolve);
+  });
+
   await db.ref('games/' + app.gameId).update(updates);
   } catch (e) {
     console.error('drawFromDeck error:', e);
@@ -1288,6 +1294,73 @@ function showScoreboard() {
   dom.scoreboardActions.appendChild(closeBtn);
 }
 
+// === Draw Card Animation ===
+
+function animateDrawnCard(cardId, callback) {
+  var overlay = document.getElementById('drawn-card-overlay');
+  overlay.innerHTML = '';
+  overlay.classList.add('active');
+
+  // Position: start at the draw pile location
+  var drawPileEl = document.getElementById('draw-stack');
+  var drawRect = drawPileEl.getBoundingClientRect();
+
+  var anim = document.createElement('div');
+  anim.className = 'drawn-card-anim';
+  anim.style.top = drawRect.top + 'px';
+  anim.style.left = drawRect.left + 'px';
+
+  var inner = document.createElement('div');
+  inner.className = 'drawn-card-inner';
+
+  var back = document.createElement('div');
+  back.className = 'drawn-card-back';
+  back.innerHTML = '<img src="cards/back.png" alt="card back">';
+
+  var front = document.createElement('div');
+  front.className = 'drawn-card-front';
+  front.innerHTML = '<img src="' + cardImagePath(cardId) + '" alt="' + cardDisplayName(cardId) + '">';
+
+  inner.appendChild(back);
+  inner.appendChild(front);
+  anim.appendChild(inner);
+  overlay.appendChild(anim);
+
+  // Step 1: Move to center of screen
+  var centerX = window.innerWidth / 2 - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2;
+  var centerY = window.innerHeight / 2 - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) / 2;
+
+  requestAnimationFrame(function() {
+    anim.style.transition = 'top 0.3s ease, left 0.3s ease';
+    anim.style.top = centerY + 'px';
+    anim.style.left = centerX + 'px';
+
+    // Step 2: Flip after arriving at center
+    setTimeout(function() {
+      inner.classList.add('flipped');
+
+      // Step 3: Fly to hand after showing the face
+      setTimeout(function() {
+        var handEl = document.getElementById('player-hand');
+        var handRect = handEl.getBoundingClientRect();
+        var targetX = handRect.left + handRect.width / 2 - 30;
+        var targetY = handRect.top;
+
+        anim.classList.add('fly-to-hand');
+        anim.style.top = targetY + 'px';
+        anim.style.left = targetX + 'px';
+
+        // Cleanup
+        setTimeout(function() {
+          overlay.classList.remove('active');
+          overlay.innerHTML = '';
+          if (callback) callback();
+        }, 450);
+      }, 700);
+    }, 350);
+  });
+}
+
 // === Lay Off Helpers ===
 
 function findLayOffTargets(cardId) {
@@ -1368,6 +1441,22 @@ function setupEventListeners() {
     if (app.discardPickupIdx >= 0) {
       drawFromDiscard(app.discardPickupIdx);
       dom.pickupConfirm.classList.remove('active');
+    }
+  });
+
+  // Back to lobby (top-left area, via opponent name double-tap or menu)
+  document.getElementById('top-bar').addEventListener('dblclick', function() {
+    if (confirm('Leave this game and return to lobby?')) {
+      if (app.listener) app.listener.off();
+      app.gameId = null;
+      app.playerSlot = null;
+      app.game = null;
+      app.selectedCards = [];
+      sessionStorage.removeItem('rummy_gameId');
+      sessionStorage.removeItem('rummy_playerSlot');
+      sessionStorage.removeItem('rummy_token');
+      window.history.replaceState({}, '', window.location.pathname);
+      showLobby();
     }
   });
 

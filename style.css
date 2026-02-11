@@ -13,8 +13,8 @@
   --felt-green: #1a5c2a;
   --felt-dark: #134a20;
   --felt-light: #2a7a3a;
-  --card-width: 65px;
-  --card-height: 94px;
+  --card-width: 75px;
+  --card-height: 109px;
   --card-radius: 6px;
   --card-shadow: 0 2px 6px rgba(0,0,0,0.3);
   --gold: #ffd700;
@@ -335,8 +335,8 @@ html, body {
 }
 
 .meld-group .card {
-  width: 36px;
-  height: 52px;
+  width: 52px;
+  height: 75px;
 }
 
 /* Table area */
@@ -344,9 +344,11 @@ html, body {
   display: flex;
   flex: 1;
   padding: 8px 12px;
-  gap: 12px;
+  gap: 16px;
   min-height: 0;
   overflow: hidden;
+  justify-content: center;
+  align-items: flex-start;
 }
 
 /* Draw pile */
@@ -356,7 +358,6 @@ html, body {
   align-items: center;
   justify-content: flex-start;
   padding-top: 10px;
-  width: 80px;
   flex-shrink: 0;
 }
 
@@ -677,26 +678,90 @@ html, body {
   transform: translateX(-50%) translateY(0);
 }
 
+/* --- Draw Card Animation --- */
+#drawn-card-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 400;
+  pointer-events: none;
+}
+
+#drawn-card-overlay.active {
+  display: block;
+}
+
+.drawn-card-anim {
+  position: absolute;
+  width: var(--card-width);
+  height: var(--card-height);
+  perspective: 600px;
+}
+
+.drawn-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+
+.drawn-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.drawn-card-front,
+.drawn-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: var(--card-radius);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.drawn-card-front img,
+.drawn-card-back img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.drawn-card-back {
+  /* Back is the default visible side */
+}
+
+.drawn-card-front {
+  transform: rotateY(180deg);
+}
+
+.drawn-card-anim.fly-to-hand {
+  transition: top 0.4s ease-in, left 0.4s ease-in, transform 0.4s ease-in;
+  transform: scale(0.6);
+}
+
 /* --- Responsive --- */
 @media (max-width: 390px) {
   :root {
-    --card-width: 55px;
-    --card-height: 80px;
+    --card-width: 60px;
+    --card-height: 87px;
   }
   #opponent-hand .card {
-    width: 34px;
-    height: 49px;
+    width: 36px;
+    height: 52px;
   }
   .meld-group .card {
-    width: 30px;
-    height: 44px;
+    width: 42px;
+    height: 61px;
   }
 }
 
 @media (min-width: 768px) {
   :root {
-    --card-width: 80px;
-    --card-height: 116px;
+    --card-width: 90px;
+    --card-height: 130px;
   }
   #opponent-hand .card {
     width: 50px;
@@ -704,8 +769,8 @@ html, body {
     margin: 0 -6px;
   }
   .meld-group .card {
-    width: 44px;
-    height: 64px;
+    width: 60px;
+    height: 87px;
   }
 }
 
