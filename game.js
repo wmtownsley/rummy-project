@@ -76,7 +76,7 @@ var SORT_MODES = ['suit', 'rank', 'points'];
 var SORT_LABELS = { suit: 'Sort: by Suit', rank: 'Sort: by Rank', points: 'Sort: by Points' };
 
 function sortHand(cards, mode) {
-  var suitOrder = { C: 0, D: 1, H: 2, S: 3 };
+  var suitOrder = { C: 0, D: 1, S: 2, H: 3 };
   return cards.slice().sort(function(a, b) {
     if (mode === 'rank') {
       // Primary: rank, secondary: suit

@@ -183,6 +183,35 @@ async function deleteAllGames(entries) {
   showLobby();
 }
 
+// === Turn Notification Sound ===
+var turnAudioCtx = null;
+
+function initAudioContext() {
+  if (!turnAudioCtx) {
+    try { turnAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { return; }
+  }
+  if (turnAudioCtx.state === 'suspended') {
+    turnAudioCtx.resume();
+  }
+}
+
+function playTurnSound() {
+  if (!turnAudioCtx || turnAudioCtx.state !== 'running') return;
+  try {
+    var osc = turnAudioCtx.createOscillator();
+    var gain = turnAudioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(turnAudioCtx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.3, turnAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, turnAudioCtx.currentTime + 0.4);
+    osc.start(turnAudioCtx.currentTime);
+    osc.stop(turnAudioCtx.currentTime + 0.4);
+  } catch (e) { /* audio not supported */ }
+}
+
 // === Toast ===
 var toastTimer = null;
 function showToast(msg) {
@@ -391,11 +420,11 @@ async function joinGame(gameId, name) {
     updates['status'] = 'playing';
     updates['deck'] = deck;
     updates['discard'] = firstDiscard;
-    updates['currentTurn'] = 'player1';
-    updates['dealer'] = 'player2';
+    updates['currentTurn'] = 'player2';
+    updates['dealer'] = 'player1';
     updates['phase'] = 'draw';
     updates['roundNumber'] = 1;
-    updates['lastAction'] = name + ' joined! Cards dealt. ' + gameData.players.player1.name + ' goes first.';
+    updates['lastAction'] = name + ' joined! Cards dealt. ' + name + ' goes first.';
     updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
     updates['players/player1/hand'] = hand1;
     updates['players/player2'] = {
@@ -481,7 +510,13 @@ function listenToGame(gameId) {
   app.listener.on('value', function(snap) {
     var data = snap.val();
     if (!data) return;
+
+    var prevTurn = app.game ? app.game.currentTurn : null;
     app.game = data;
+
+    if (data.currentTurn === app.playerSlot && prevTurn && prevTurn !== app.playerSlot) {
+      playTurnSound();
+    }
 
     // Reset discard pickup when not in draw phase
     if (data.phase !== 'draw') {
@@ -1681,6 +1716,10 @@ function importHistoryCSV(file) {
 // === Event Listeners ===
 
 function setupEventListeners() {
+  // Unlock audio on first user interaction (browser autoplay policy)
+  document.addEventListener('click', initAudioContext, { once: true });
+  document.addEventListener('touchstart', initAudioContext, { once: true });
+
   // Lobby
   dom.createBtn.addEventListener('click', createGame);
   dom.joinBtn.addEventListener('click', function() {
