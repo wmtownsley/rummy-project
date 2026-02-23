@@ -28,10 +28,10 @@ _(none)_
   A short "bing" tone plays when it becomes your turn (i.e., after the opponent discards). Uses the Web Audio API — no external sound files needed. The browser's audio is unlocked on the first user interaction with the page.
   _Requested by Mark & Adeline. Completed 2026-02-23._
 
-### Open
+### Deferred
 
 - **Change player name mid-game**
-  Allow a player to change their display name after the game has already started.
+  Allow a player to change their display name after the game has already started. For now, "The soon to be winne" was manually renamed to "Adeline" directly in Firebase (game 7STARM, 2026-02-23). A user-facing rename feature is deferred until needed.
   _Requested by Adeline._
 
 ## Major Enhancements
