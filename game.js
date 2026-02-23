@@ -197,6 +197,19 @@ function canLayOff(card, meld) {
   return isValidMeld(extended);
 }
 
+function validateMultiLayOff(cards, meld) {
+  var extended = meld.concat(cards);
+  if (isValidMeld(extended)) {
+    return { valid: true };
+  }
+  return { valid: false, reason: cards.map(cardDisplayName).join(' ') + ' don\'t extend this meld' };
+}
+
+function canMultiLayOff(cards, meld) {
+  var extended = meld.concat(cards);
+  return isValidMeld(extended);
+}
+
 // Sort cards for display within a meld (runs sorted by rank order, sets by suit)
 function sortMeldForDisplay(cards) {
   if (cards.length <= 1) return cards.slice();

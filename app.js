@@ -732,44 +732,47 @@ async function layDownMeld(cardIds) {
   await db.ref('games/' + app.gameId).update(updates);
 }
 
-async function layOffCard(cardId, targetPlayerSlot, meldIndex) {
+async function layOffCards(cardIds, targetPlayerSlot, meldIndex) {
+  if (!Array.isArray(cardIds)) cardIds = [cardIds];
   if (!isMyTurn() || app.game.phase !== 'play') return;
 
-  // Validate against the full table meld
   var tMelds = allTableMelds();
   if (meldIndex < 0 || meldIndex >= tMelds.length) return;
 
   var meld = tMelds[meldIndex].slice();
-  var layResult = validateLayOff(cardId, meld);
+  var layResult = validateMultiLayOff(cardIds, meld);
   if (!layResult.valid) {
     showToast(layResult.reason);
     return;
   }
 
-  meld.push(cardId);
   var hand = myHand().slice();
-  var idx = hand.indexOf(cardId);
-  if (idx === -1) return;
-  hand.splice(idx, 1);
-
-  // Check if must-play card was used
-  if (app.mustPlayCard && cardId === app.mustPlayCard) {
-    app.mustPlayCard = null;
+  for (var i = 0; i < cardIds.length; i++) {
+    var idx = hand.indexOf(cardIds[i]);
+    if (idx === -1) return;
+    hand.splice(idx, 1);
+    meld.push(cardIds[i]);
   }
 
-  // Update the table meld and ownership (card credited to ME, not meld owner)
+  if (app.mustPlayCard) {
+    if (cardIds.indexOf(app.mustPlayCard) !== -1) {
+      app.mustPlayCard = null;
+    }
+  }
+
   tMelds[meldIndex] = meld;
   var ownership = getCardOwnership();
-  ownership[cardId] = app.playerSlot;
+  for (var i = 0; i < cardIds.length; i++) {
+    ownership[cardIds[i]] = app.playerSlot;
+  }
 
   var updates = {};
   updates['players/' + app.playerSlot + '/hand'] = hand;
   updates['tableMelds'] = tMelds;
   updates['cardOwnership'] = ownership;
-  updates['lastAction'] = myPlayer().name + ' laid off ' + cardDisplayName(cardId);
+  updates['lastAction'] = myPlayer().name + ' laid off ' + cardIds.map(cardDisplayName).join(' ');
   updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
 
-  // Check if going out
   if (hand.length === 0) {
     updates['lastAction'] = myPlayer().name + ' went out!';
     app.selectedCards = [];
@@ -1139,11 +1142,11 @@ function renderMelds(container, label, player, playerSlot, isOwn) {
       meldGroup.style.cursor = 'pointer';
       (function(mi) {
         meldGroup.addEventListener('click', function() {
-          if (app.selectedCards.length !== 1) {
-            showToast('Select exactly 1 card to lay off');
+          if (app.selectedCards.length === 0) {
+            showToast('Select card(s) to lay off');
             return;
           }
-          layOffCard(app.selectedCards[0], null, mi);
+          layOffCards(app.selectedCards.slice(), null, mi);
         });
       })(displayGroups[m].tableMeldIdx);
     }
@@ -1241,26 +1244,22 @@ function renderActionBar() {
       }
 
       // 1-2 cards: try to lay off on an existing meld
-      if (sel.length === 1) {
-        var card = sel[0];
-        var matches = findLayOffTargets(card);
-        if (matches.length === 1) {
-          // Exactly one match — lay off automatically
-          layOffCard(card, matches[0].playerSlot, matches[0].meldIndex);
-          return;
-        } else if (matches.length > 1) {
-          showToast('Multiple melds match — tap the one you want to add to');
-          return;
+      var matches = findLayOffTargets(sel);
+      if (matches.length === 1) {
+        layOffCards(sel, matches[0].playerSlot, matches[0].meldIndex);
+        return;
+      } else if (matches.length > 1) {
+        showToast('Multiple melds match — tap the one you want to add to');
+        return;
+      } else {
+        if (sel.length === 1) {
+          showToast(cardDisplayName(sel[0]) + ' doesn\'t fit any meld on the table');
         } else {
-          showToast(cardDisplayName(card) + ' doesn\'t fit any meld on the table');
-          shakeButton(layBtn);
-          return;
+          showToast('These cards don\'t fit any meld on the table');
         }
+        shakeButton(layBtn);
+        return;
       }
-
-      // 2 cards — not a valid new meld, try laying off one at a time
-      showToast('Select 1 card to add to a meld, or 3+ for a new meld');
-      shakeButton(layBtn);
     });
     dom.actionBar.appendChild(layBtn);
 
@@ -1481,12 +1480,12 @@ function animateDrawnCard(cardId, callback) {
 
 // === Lay Off Helpers ===
 
-function findLayOffTargets(cardId) {
-  // Find all table melds this card can extend
+function findLayOffTargets(cardIds) {
+  if (!Array.isArray(cardIds)) cardIds = [cardIds];
   var matches = [];
   var tMelds = allTableMelds();
   for (var m = 0; m < tMelds.length; m++) {
-    if (canLayOff(cardId, tMelds[m])) {
+    if (canMultiLayOff(cardIds, tMelds[m])) {
       matches.push({ playerSlot: null, meldIndex: m });
     }
   }
