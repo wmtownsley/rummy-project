@@ -36,11 +36,15 @@ _(none)_
 
 ## Major Enhancements
 
+### Completed
+
+- **Drag-to-reorder cards in hand**
+  Players can now press and drag cards left/right to rearrange their hand in any order. A tap still selects for play/discard; dragging past a small threshold picks up the card as a floating ghost with a gold drop indicator showing the target position. Works on both mouse and touch, tested with up to 23 cards.
+  _Requested by Mark. Completed 2026-02-23._
+
 ### Open
 
-- **Drag-to-reorder cards in hand** _(high priority)_
-  Allow players to rearrange cards in their hand freely by dragging them left/right, similar to reordering items in a list. Needs careful UX to distinguish a drag (reorder) from a tap (select for play/discard). May require a few iterations.
-  _Requested by Mark._
+_(none)_
 
 ## Roadmap
 
