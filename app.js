@@ -1339,18 +1339,19 @@ function renderActionBar() {
 }
 
 function renderPlayerHand() {
+  if (dragState.dragStarted) return;
+
   dom.playerHand.innerHTML = '';
   var hand = myHand();
 
-  // Calculate overlap for fitting cards
   var containerWidth = dom.playerHand.clientWidth - 24;
   var cardWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width'));
-  var overlap = cardWidth; // no overlap if few cards
+  var overlap = cardWidth;
   if (hand.length > 1) {
     var needed = cardWidth * hand.length;
     if (needed > containerWidth) {
       overlap = (containerWidth - cardWidth) / (hand.length - 1);
-      overlap = Math.max(overlap, 20); // minimum visible area
+      overlap = Math.max(overlap, 20);
     }
   }
 
@@ -1371,12 +1372,16 @@ function renderPlayerHand() {
     }
 
     cardEl.setAttribute('data-card', cardId);
-    cardEl.onclick = (function(cid) {
-      return function(e) {
-        e.stopPropagation();
-        toggleCardSelection(cid);
-      };
-    })(cardId);
+
+    (function(cid, el) {
+      el.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        onCardDragStart(e, cid, el);
+      });
+      el.addEventListener('touchstart', function(e) {
+        onCardDragStart(e, cid, el);
+      }, { passive: true });
+    })(cardId, cardEl);
 
     dom.playerHand.appendChild(cardEl);
   }
@@ -1525,6 +1530,155 @@ function findLayOffTargets(cardIds) {
     }
   }
   return matches;
+}
+
+// === Card Drag-to-Reorder ===
+
+var dragState = {
+  active: false,
+  cardId: null,
+  cardEl: null,
+  startX: 0,
+  startY: 0,
+  offsetX: 0,
+  offsetY: 0,
+  dragStarted: false,
+  ghostEl: null,
+  dropIndicator: null,
+  currentDropIndex: -1,
+  threshold: 10
+};
+
+function onCardDragStart(e, cardId, cardEl) {
+  if (dragState.active) return;
+  var point = e.touches ? e.touches[0] : e;
+  dragState.active = true;
+  dragState.cardId = cardId;
+  dragState.cardEl = cardEl;
+  dragState.startX = point.clientX;
+  dragState.startY = point.clientY;
+  dragState.dragStarted = false;
+}
+
+function onDragMove(e) {
+  if (!dragState.active) return;
+  var point = e.touches ? e.touches[0] : e;
+  var dx = point.clientX - dragState.startX;
+  var dy = point.clientY - dragState.startY;
+
+  if (!dragState.dragStarted) {
+    if (Math.abs(dx) < dragState.threshold && Math.abs(dy) < dragState.threshold) return;
+    dragState.dragStarted = true;
+    beginDrag(point);
+  }
+
+  if (e.cancelable) e.preventDefault();
+  updateDrag(point);
+}
+
+function beginDrag(point) {
+  var rect = dragState.cardEl.getBoundingClientRect();
+
+  var ghost = dragState.cardEl.cloneNode(true);
+  ghost.classList.remove('selected');
+  ghost.classList.add('drag-ghost');
+  ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  document.body.appendChild(ghost);
+  dragState.ghostEl = ghost;
+  dragState.offsetX = point.clientX - rect.left;
+  dragState.offsetY = point.clientY - rect.top;
+
+  dragState.cardEl.classList.add('drag-placeholder');
+
+  var indicator = document.createElement('div');
+  indicator.className = 'drop-indicator';
+  indicator.style.display = 'none';
+  dom.playerHand.appendChild(indicator);
+  dragState.dropIndicator = indicator;
+}
+
+function updateDrag(point) {
+  if (!dragState.ghostEl) return;
+  dragState.ghostEl.style.left = (point.clientX - dragState.offsetX) + 'px';
+  dragState.ghostEl.style.top = (point.clientY - dragState.offsetY) + 'px';
+
+  var dropIndex = getDropIndex(point.clientX);
+  if (dropIndex !== dragState.currentDropIndex) {
+    dragState.currentDropIndex = dropIndex;
+    positionDropIndicator(dropIndex);
+  }
+}
+
+function getDropIndex(clientX) {
+  var cards = dom.playerHand.querySelectorAll('.card[data-card]:not(.drag-placeholder)');
+  for (var i = 0; i < cards.length; i++) {
+    var rect = cards[i].getBoundingClientRect();
+    if (clientX < rect.left + rect.width / 2) return i;
+  }
+  return cards.length;
+}
+
+function positionDropIndicator(dropIndex) {
+  if (!dragState.dropIndicator) return;
+  var cards = dom.playerHand.querySelectorAll('.card[data-card]:not(.drag-placeholder)');
+  if (cards.length === 0) return;
+
+  var handRect = dom.playerHand.getBoundingClientRect();
+  var x;
+  if (dropIndex >= cards.length) {
+    var lastRect = cards[cards.length - 1].getBoundingClientRect();
+    x = lastRect.right - handRect.left;
+  } else {
+    var cardRect = cards[dropIndex].getBoundingClientRect();
+    x = cardRect.left - handRect.left;
+  }
+
+  dragState.dropIndicator.style.left = x + 'px';
+  dragState.dropIndicator.style.display = 'block';
+}
+
+function onDragEnd(e) {
+  if (!dragState.active) return;
+  if (dragState.dragStarted) {
+    var point = e.changedTouches ? e.changedTouches[0] : e;
+    var dropIndex = getDropIndex(point.clientX);
+    completeDrag(dropIndex);
+  } else {
+    toggleCardSelection(dragState.cardId);
+  }
+  cleanupDrag();
+}
+
+function completeDrag(dropIndex) {
+  var hand = myHand().slice();
+  var sourceIndex = hand.indexOf(dragState.cardId);
+  if (sourceIndex === -1) return;
+  hand.splice(sourceIndex, 1);
+  if (dropIndex > sourceIndex) dropIndex--;
+  hand.splice(dropIndex, 0, dragState.cardId);
+  db.ref('games/' + app.gameId + '/players/' + app.playerSlot + '/hand').set(hand);
+}
+
+function cleanupDrag() {
+  if (dragState.ghostEl) {
+    dragState.ghostEl.remove();
+    dragState.ghostEl = null;
+  }
+  if (dragState.cardEl) {
+    dragState.cardEl.classList.remove('drag-placeholder');
+  }
+  if (dragState.dropIndicator) {
+    dragState.dropIndicator.remove();
+    dragState.dropIndicator = null;
+  }
+  dragState.active = false;
+  dragState.cardId = null;
+  dragState.cardEl = null;
+  dragState.dragStarted = false;
+  dragState.currentDropIndex = -1;
 }
 
 // === Card Selection ===
@@ -1719,6 +1873,12 @@ function setupEventListeners() {
   // Unlock audio on first user interaction (browser autoplay policy)
   document.addEventListener('click', initAudioContext, { once: true });
   document.addEventListener('touchstart', initAudioContext, { once: true });
+
+  // Card drag-to-reorder (document-level move/end handlers)
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchmove', onDragMove, { passive: false });
+  document.addEventListener('touchend', onDragEnd);
 
   // Lobby
   dom.createBtn.addEventListener('click', createGame);

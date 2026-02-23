@@ -973,6 +973,40 @@ html, body {
   }
 }
 
+/* Card drag-to-reorder */
+#player-hand {
+  position: relative;
+}
+
+.drag-ghost {
+  position: fixed !important;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.9;
+  transform: scale(1.06) rotate(2deg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  margin: 0 !important;
+  transition: none !important;
+  border-radius: var(--card-radius);
+}
+
+.drag-placeholder {
+  opacity: 0.25;
+  transition: opacity 0.15s;
+}
+
+.drop-indicator {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--gold);
+  border-radius: 2px;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+}
+
 /* Safe area for notched iPhones */
 @supports (padding-top: env(safe-area-inset-top)) {
   #top-bar {
