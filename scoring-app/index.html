@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>Rummy Scores</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Setup Screen (first launch) -->
+    <section id="setup-screen">
+      <h1>Rummy Scores</h1>
+      <p class="setup-subtitle">Quick setup — just once per device</p>
+      <div class="setup-fields">
+        <label>Your name</label>
+        <input type="text" id="setup-my-name" placeholder="e.g. Mark" maxlength="20" autocomplete="off">
+        <label>Other player</label>
+        <input type="text" id="setup-other-name" placeholder="e.g. Adeline" maxlength="20" autocomplete="off">
+      </div>
+      <button class="btn-save" id="setup-btn">Let's Go</button>
+    </section>
+
+    <!-- Main App (hidden until setup complete) -->
+    <div id="main-app" style="display:none">
+
+    <header id="header">
+      <h1>Rummy Scores</h1>
+      <div id="connection-status" class="status-online" title="Online">&#9679;</div>
+    </header>
+
+    <!-- Score Entry -->
+    <section id="score-entry">
+      <div class="player-score-card" id="player-card-0" data-player="0">
+        <div class="player-name" id="player-name-0">Adeline</div>
+        <div class="score-display" id="score-display-0">&mdash;</div>
+        <input type="number" class="score-input" id="score-input-0" inputmode="numeric" pattern="-?[0-9]*" placeholder="0">
+      </div>
+
+      <div class="player-score-card" id="player-card-1" data-player="1">
+        <div class="player-name" id="player-name-1">Mark</div>
+        <div class="score-display" id="score-display-1">&mdash;</div>
+        <input type="number" class="score-input" id="score-input-1" inputmode="numeric" pattern="-?[0-9]*" placeholder="0">
+      </div>
+
+      <button class="btn-save" id="save-btn" disabled>Save Round</button>
+    </section>
+
+    <!-- Running Totals -->
+    <section id="totals-bar">
+      <div class="total-item">
+        <span class="total-name" id="total-name-0">Adeline</span>
+        <span class="total-value" id="total-value-0">0</span>
+      </div>
+      <div class="total-delta" id="total-delta">Tied</div>
+      <div class="total-item">
+        <span class="total-name" id="total-name-1">Mark</span>
+        <span class="total-value" id="total-value-1">0</span>
+      </div>
+    </section>
+
+    <!-- Rounds History -->
+    <section id="history-section">
+      <div class="history-header">
+        <h2>Rounds</h2>
+        <button class="btn-new-game" id="new-game-btn">New Game</button>
+      </div>
+      <div id="rounds-list"></div>
+    </section>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+
+    </div><!-- /main-app -->
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <!-- App -->
+  <script src="app.js"></script>
+</body>
+</html>
