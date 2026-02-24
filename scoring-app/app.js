@@ -1,5 +1,5 @@
-// Rummy Scores — PWA
-// Flat round storage, Firebase sync, offline support, geolocation
+// Scored! — PWA
+// Flat round storage, Firebase sync, offline support
 
 firebase.initializeApp({
   apiKey: "AIzaSyChJDXt0LDQUJsVDeCicKp6HUDXm37feto",
@@ -19,7 +19,6 @@ var state = {
   rounds: [],
   gameStartedAt: 0,
   scores: [],
-  location: null,
   online: navigator.onLine,
   myName: localStorage.getItem('rummy_scoring_myName') || null
 };
@@ -50,41 +49,6 @@ function updateConnectionStatus() {
 
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
-
-// === Geolocation ===
-function captureLocation() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(
-    function(pos) {
-      var loc = {
-        lat: Math.round(pos.coords.latitude * 10000) / 10000,
-        lon: Math.round(pos.coords.longitude * 10000) / 10000,
-        accuracy: Math.round(pos.coords.accuracy),
-        timestamp: Date.now()
-      };
-      reverseGeocode(loc, function(city) {
-        loc.city = city || null;
-        state.location = loc;
-      });
-    },
-    function() {},
-    { timeout: 8000, maximumAge: 300000 }
-  );
-}
-
-function reverseGeocode(loc, callback) {
-  if (!state.online) { callback(null); return; }
-  var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + loc.lat + '&lon=' + loc.lon + '&zoom=10';
-  fetch(url, { headers: { 'Accept-Language': 'en' } })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      var city = data.address
-        ? (data.address.city || data.address.town || data.address.village || data.address.county || '')
-        : '';
-      callback(city);
-    })
-    .catch(function() { callback(null); });
-}
 
 // === Setup ===
 function nameToId(name) {
@@ -143,7 +107,6 @@ function loadPlayersAndStart() {
     if (state.gameStartedAt === 0) startNewGame();
 
     listenToRounds();
-    captureLocation();
   });
 }
 
@@ -190,7 +153,6 @@ function startNewGame() {
   clearInputs();
   renderAll();
   showToast('Scores reset');
-  captureLocation();
 }
 
 // === Save Round ===
@@ -203,7 +165,6 @@ function saveRound() {
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     scores: {},
     source: 'manual',
-    location: state.location || null,
     recordedBy: state.myName || 'unknown'
   };
 
@@ -340,15 +301,10 @@ function renderRounds() {
 
     var meta = document.createElement('span');
     meta.className = 'round-meta';
-    var parts = [];
     if (r.timestamp && typeof r.timestamp === 'number') {
       var d = new Date(r.timestamp);
-      parts.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      meta.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
-    if (r.location && r.location.city) {
-      parts.push(r.location.city);
-    }
-    meta.textContent = parts.join(' · ');
     row.appendChild(meta);
 
     list.appendChild(row);
