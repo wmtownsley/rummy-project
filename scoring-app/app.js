@@ -13,12 +13,15 @@ firebase.initializeApp({
 
 var db = firebase.database();
 
-var PLAYERS = [];
+var PLAYERS = [
+  { id: 'adeline', name: 'Adeline' },
+  { id: 'mark', name: 'Mark' }
+];
 
 var state = {
   rounds: [],
   gameStartedAt: 0,
-  scores: [],
+  scores: [null, null],
   online: navigator.onLine,
   myName: localStorage.getItem('rummy_scoring_myName') || null
 };
@@ -50,92 +53,14 @@ function updateConnectionStatus() {
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
 
-// === Setup ===
-function nameToId(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function showSetup() {
-  document.getElementById('setup-screen').style.display = '';
-  document.getElementById('main-app').style.display = 'none';
-}
-
-function showMainApp() {
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = '';
-}
-
-function completeSetup() {
-  var myName = document.getElementById('setup-my-name').value.trim();
-  var otherName = document.getElementById('setup-other-name').value.trim();
-  if (!myName || !otherName) { showToast('Enter both names'); return; }
-  if (myName.toLowerCase() === otherName.toLowerCase()) { showToast('Names must be different'); return; }
-
-  state.myName = myName;
-  localStorage.setItem('rummy_scoring_myName', myName);
-
-  var players = {};
-  players[nameToId(myName)] = { name: myName, order: 0 };
-  players[nameToId(otherName)] = { name: otherName, order: 1 };
-  db.ref('scoring/players').set(players);
-
-  loadPlayersAndStart();
-}
-
-function loadPlayersAndStart() {
-  db.ref('scoring/players').once('value', function(snap) {
-    var data = snap.val();
-    if (!data) {
-      showSetup();
-      return;
-    }
-
-    PLAYERS = [];
-    Object.keys(data).forEach(function(key) {
-      PLAYERS.push({ id: key, name: data[key].name, order: data[key].order || 0 });
-    });
-    PLAYERS.sort(function(a, b) { return a.order - b.order; });
-
-    state.scores = PLAYERS.map(function() { return null; });
-    buildScoreCards();
-    showMainApp();
-    setupEvents();
-    updateConnectionStatus();
-
-    var saved = localStorage.getItem('rummy_scoring_gameStartedAt');
-    state.gameStartedAt = saved ? parseInt(saved, 10) : 0;
-    if (state.gameStartedAt === 0) startNewGame();
-
-    listenToRounds();
-  });
-}
-
-// === Dynamic Score Cards ===
-function buildScoreCards() {
-  var entry = document.getElementById('score-entry');
-  var saveBtn = document.getElementById('save-btn');
-
-  // Remove old player cards (keep save button)
-  var oldCards = entry.querySelectorAll('.player-score-card');
-  for (var i = 0; i < oldCards.length; i++) oldCards[i].remove();
-
-  for (var i = 0; i < PLAYERS.length; i++) {
-    var card = document.createElement('div');
-    card.className = 'player-score-card';
-    card.id = 'player-card-' + i;
-    card.setAttribute('data-player', i);
-
-    card.innerHTML = '<div class="player-name" id="player-name-' + i + '">' + PLAYERS[i].name + '</div>'
-      + '<div class="score-display" id="score-display-' + i + '">&mdash;</div>'
-      + '<input type="number" class="score-input" id="score-input-' + i + '" inputmode="numeric" pattern="-?[0-9]*" placeholder="0">';
-
-    entry.insertBefore(card, saveBtn);
-  }
-
-  // Update totals bar
-  for (var i = 0; i < PLAYERS.length; i++) {
-    var nameEl = document.getElementById('total-name-' + i);
-    if (nameEl) nameEl.textContent = PLAYERS[i].name;
+// === Identity ===
+function ensureIdentity() {
+  if (state.myName) return;
+  var name = prompt('Who is recording scores?', 'Mark');
+  if (name) {
+    name = name.trim();
+    state.myName = name;
+    localStorage.setItem('rummy_scoring_myName', name);
   }
 }
 
@@ -160,6 +85,7 @@ function saveRound() {
   for (var i = 0; i < PLAYERS.length; i++) {
     if (state.scores[i] === null) return;
   }
+  ensureIdentity();
 
   var roundData = {
     timestamp: firebase.database.ServerValue.TIMESTAMP,
@@ -261,10 +187,7 @@ function renderRounds() {
 
   var rounds = currentGameRounds();
 
-  if (rounds.length === 0) {
-    list.innerHTML = '<div class="empty-state">No rounds yet — enter scores above</div>';
-    return;
-  }
+  if (rounds.length === 0) return;
 
   var header = document.createElement('div');
   header.className = 'round-row round-header';
@@ -391,20 +314,13 @@ function setupEvents() {
 // === Init ===
 function init() {
   updateConnectionStatus();
+  setupEvents();
 
-  document.getElementById('setup-btn').addEventListener('click', completeSetup);
-  document.getElementById('setup-my-name').addEventListener('keyup', function(e) {
-    if (e.key === 'Enter') document.getElementById('setup-other-name').focus();
-  });
-  document.getElementById('setup-other-name').addEventListener('keyup', function(e) {
-    if (e.key === 'Enter') completeSetup();
-  });
+  var saved = localStorage.getItem('rummy_scoring_gameStartedAt');
+  state.gameStartedAt = saved ? parseInt(saved, 10) : 0;
+  if (state.gameStartedAt === 0) startNewGame();
 
-  if (state.myName) {
-    loadPlayersAndStart();
-  } else {
-    showSetup();
-  }
+  listenToRounds();
 }
 
 document.addEventListener('DOMContentLoaded', init);
