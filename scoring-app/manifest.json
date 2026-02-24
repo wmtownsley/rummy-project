@@ -1,6 +1,6 @@
 {
-  "name": "Rummy Scores",
-  "short_name": "Rummy Scores",
+  "name": "Scored!",
+  "short_name": "Scored!",
   "description": "Quick Rummy score tracker",
   "start_url": "./index.html",
   "display": "standalone",
