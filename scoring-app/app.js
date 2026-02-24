@@ -368,11 +368,22 @@ function setupEvents() {
 
   document.getElementById('save-btn').addEventListener('click', saveRound);
 
-  document.getElementById('new-game-btn').addEventListener('click', function() {
+  document.getElementById('settings-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('settings-menu').classList.toggle('open');
+  });
+
+  document.addEventListener('click', function() {
+    document.getElementById('settings-menu').classList.remove('open');
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
     var rounds = currentGameRounds();
     if (rounds.length > 0) {
       if (!confirm('Reset running scores?')) return;
     }
+    document.getElementById('settings-menu').classList.remove('open');
     startNewGame();
   });
 }

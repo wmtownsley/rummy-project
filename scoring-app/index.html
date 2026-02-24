@@ -32,8 +32,16 @@
 
     <header id="header">
       <h1>Scored!</h1>
-      <div id="connection-status" class="status-online" title="Online">&#9679;</div>
+      <div class="header-right">
+        <div id="connection-status" class="status-online" title="Online">&#9679;</div>
+        <button class="settings-btn" id="settings-btn" title="Settings">&#9881;</button>
+      </div>
     </header>
+
+    <!-- Settings dropdown -->
+    <div id="settings-menu" class="settings-menu">
+      <button class="settings-item" id="reset-btn">Reset Scores</button>
+    </div>
 
     <!-- Score Entry -->
     <section id="score-entry">
@@ -67,9 +75,6 @@
 
     <!-- Rounds History -->
     <section id="history-section">
-      <div class="history-header">
-        <button class="btn-new-game" id="new-game-btn">Reset Scores</button>
-      </div>
       <div id="rounds-list"></div>
     </section>
 
