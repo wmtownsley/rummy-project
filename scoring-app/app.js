@@ -189,7 +189,7 @@ function startNewGame() {
   state.scores = PLAYERS.map(function() { return null; });
   clearInputs();
   renderAll();
-  showToast('New game — totals reset');
+  showToast('Scores reset');
   captureLocation();
 }
 
@@ -215,7 +215,7 @@ function saveRound() {
 
   state.scores = PLAYERS.map(function() { return null; });
   clearInputs();
-  showToast('Round saved');
+  showToast('Saved');
 }
 
 // === Listen to Rounds ===
@@ -307,7 +307,7 @@ function renderRounds() {
 
   var header = document.createElement('div');
   header.className = 'round-row round-header';
-  var headerHtml = '<span class="round-num"></span><div class="round-scores">';
+  var headerHtml = '<div class="round-scores">';
   for (var p = 0; p < PLAYERS.length; p++) {
     headerHtml += '<span class="round-score-label">' + PLAYERS[p].name + '</span>';
   }
@@ -319,11 +319,6 @@ function renderRounds() {
     var r = rounds[i];
     var row = document.createElement('div');
     row.className = 'round-row';
-
-    var numEl = document.createElement('span');
-    numEl.className = 'round-num';
-    numEl.textContent = 'R' + (i + 1);
-    row.appendChild(numEl);
 
     var vals = [];
     for (var p = 0; p < PLAYERS.length; p++) {
@@ -420,7 +415,7 @@ function setupEvents() {
   document.getElementById('new-game-btn').addEventListener('click', function() {
     var rounds = currentGameRounds();
     if (rounds.length > 0) {
-      if (!confirm('Start a new game? Running totals will reset.')) return;
+      if (!confirm('Reset running scores?')) return;
     }
     startNewGame();
   });
