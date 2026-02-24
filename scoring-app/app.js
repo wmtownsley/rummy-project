@@ -348,7 +348,7 @@ function renderRounds() {
     var parts = [];
     if (r.timestamp && typeof r.timestamp === 'number') {
       var d = new Date(r.timestamp);
-      parts.push(d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'));
+      parts.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     }
     if (r.location && r.location.city) {
       parts.push(r.location.city);
