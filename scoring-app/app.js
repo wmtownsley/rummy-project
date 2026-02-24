@@ -22,8 +22,7 @@ var state = {
   rounds: [],
   gameStartedAt: 0,
   scores: [null, null],
-  online: navigator.onLine,
-  myName: localStorage.getItem('rummy_scoring_myName') || null
+  online: navigator.onLine
 };
 
 // === Toast ===
@@ -53,16 +52,6 @@ function updateConnectionStatus() {
 window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
 
-// === Identity ===
-function ensureIdentity() {
-  if (state.myName) return;
-  var name = prompt('Who is recording scores?', 'Mark');
-  if (name) {
-    name = name.trim();
-    state.myName = name;
-    localStorage.setItem('rummy_scoring_myName', name);
-  }
-}
 
 // === Game Boundary ===
 function getGameStartedAt() {
@@ -85,13 +74,10 @@ function saveRound() {
   for (var i = 0; i < PLAYERS.length; i++) {
     if (state.scores[i] === null) return;
   }
-  ensureIdentity();
-
   var roundData = {
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     scores: {},
-    source: 'manual',
-    recordedBy: state.myName || 'unknown'
+    source: 'manual'
   };
 
   for (var i = 0; i < PLAYERS.length; i++) {
