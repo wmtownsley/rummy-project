@@ -20,7 +20,6 @@ var PLAYERS = [
 
 var state = {
   rounds: [],
-  gameStartedAt: 0,
   scores: [null, null],
   online: navigator.onLine
 };
@@ -53,26 +52,6 @@ window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
 
 
-// === Game Boundary (synced via Firebase) ===
-function getGameStartedAt() {
-  return state.gameStartedAt || 0;
-}
-
-function startNewGame() {
-  var now = Date.now();
-  db.ref('scoring/gameStartedAt').set(now);
-  state.scores = PLAYERS.map(function() { return null; });
-  clearInputs();
-  showToast('Scores reset');
-}
-
-function listenToGameStartedAt() {
-  db.ref('scoring/gameStartedAt').on('value', function(snap) {
-    var val = snap.val();
-    state.gameStartedAt = val || 0;
-    renderAll();
-  });
-}
 
 // === Save Round ===
 function saveRound() {
@@ -136,15 +115,8 @@ function renderAll() {
   renderRounds();
 }
 
-function currentGameRounds() {
-  var start = getGameStartedAt();
-  return state.rounds.filter(function(r) {
-    return r.timestamp && r.timestamp >= start;
-  });
-}
-
 function renderTotals() {
-  var rounds = currentGameRounds();
+  var rounds = state.rounds;
   var totals = {};
   for (var i = 0; i < PLAYERS.length; i++) totals[PLAYERS[i].id] = 0;
 
@@ -176,7 +148,7 @@ function renderRounds() {
   var list = document.getElementById('rounds-list');
   list.innerHTML = '';
 
-  var rounds = currentGameRounds();
+  var rounds = state.rounds;
 
   if (rounds.length === 0) return;
 
@@ -284,31 +256,12 @@ function setupEvents() {
 
   document.getElementById('save-btn').addEventListener('click', saveRound);
 
-  document.getElementById('settings-btn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    document.getElementById('settings-menu').classList.toggle('open');
-  });
-
-  document.addEventListener('click', function() {
-    document.getElementById('settings-menu').classList.remove('open');
-  });
-
-  document.getElementById('reset-btn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    var rounds = currentGameRounds();
-    if (rounds.length > 0) {
-      if (!confirm('Reset running scores?')) return;
-    }
-    document.getElementById('settings-menu').classList.remove('open');
-    startNewGame();
-  });
 }
 
 // === Init ===
 function init() {
   updateConnectionStatus();
   setupEvents();
-  listenToGameStartedAt();
   listenToRounds();
 }
 
