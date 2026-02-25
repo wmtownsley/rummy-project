@@ -215,9 +215,11 @@ function renderRounds() {
 
     var meta = document.createElement('span');
     meta.className = 'round-meta';
-    if (r.timestamp && typeof r.timestamp === 'number') {
+    if (r.timestamp && typeof r.timestamp === 'number' && r.timestamp > 1000000000000) {
       var d = new Date(r.timestamp);
       meta.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else {
+      meta.textContent = '---';
     }
     row.appendChild(meta);
 
