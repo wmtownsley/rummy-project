@@ -53,20 +53,25 @@ window.addEventListener('online', updateConnectionStatus);
 window.addEventListener('offline', updateConnectionStatus);
 
 
-// === Game Boundary ===
+// === Game Boundary (synced via Firebase) ===
 function getGameStartedAt() {
   return state.gameStartedAt || 0;
 }
 
 function startNewGame() {
   var now = Date.now();
-  state.gameStartedAt = now;
-  localStorage.setItem('rummy_scoring_gameStartedAt', String(now));
-  db.ref('scoring/gameMarkers').push({ timestamp: firebase.database.ServerValue.TIMESTAMP });
+  db.ref('scoring/gameStartedAt').set(now);
   state.scores = PLAYERS.map(function() { return null; });
   clearInputs();
-  renderAll();
   showToast('Scores reset');
+}
+
+function listenToGameStartedAt() {
+  db.ref('scoring/gameStartedAt').on('value', function(snap) {
+    var val = snap.val();
+    state.gameStartedAt = val || 0;
+    renderAll();
+  });
 }
 
 // === Save Round ===
@@ -301,11 +306,7 @@ function setupEvents() {
 function init() {
   updateConnectionStatus();
   setupEvents();
-
-  var saved = localStorage.getItem('rummy_scoring_gameStartedAt');
-  state.gameStartedAt = saved ? parseInt(saved, 10) : 0;
-  if (state.gameStartedAt === 0) startNewGame();
-
+  listenToGameStartedAt();
   listenToRounds();
 }
 
