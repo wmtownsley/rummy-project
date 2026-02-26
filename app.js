@@ -512,10 +512,17 @@ function listenToGame(gameId) {
     if (!data) return;
 
     var prevTurn = app.game ? app.game.currentTurn : null;
+    var prevActionTime = app.game ? app.game.lastActionTime : null;
     app.game = data;
 
     if (data.currentTurn === app.playerSlot && prevTurn && prevTurn !== app.playerSlot) {
       playTurnSound();
+    }
+
+    if (prevActionTime && data.lastActionTime !== prevActionTime
+        && data.lastAction && data.lastAction.indexOf('drew from the deck') !== -1
+        && data.currentTurn !== app.playerSlot) {
+      animateOpponentDraw();
     }
 
     // Reset discard pickup when not in draw phase
@@ -655,6 +662,7 @@ async function drawFromDeck() {
     updates['lastAction'] = myPlayer().name + ' drew from the deck (reshuffled)';
     updates['lastActionTime'] = firebase.database.ServerValue.TIMESTAMP;
     await db.ref('games/' + app.gameId).update(updates);
+    animateDrawnCard(card);
     return;
   }
   var card = deck[0];
@@ -671,6 +679,7 @@ async function drawFromDeck() {
   app.mustPlayCard = null;
 
   await db.ref('games/' + app.gameId).update(updates);
+  animateDrawnCard(card);
   } catch (e) {
     console.error('drawFromDeck error:', e);
     showToast('Error drawing: ' + e.message);
@@ -1442,6 +1451,31 @@ function showScoreboard() {
   });
   dom.scoreboardActions.appendChild(newRoundBtn);
 
+  if (isScoredAppEligible()) {
+    var latestRound = history[history.length - 1];
+    var savedRounds = app.game.savedToScoring || {};
+    var roundKey = 'round_' + latestRound.round;
+    var alreadySaved = !!savedRounds[roundKey];
+
+    var saveScoreBtn = document.createElement('button');
+    saveScoreBtn.className = 'btn btn-secondary btn-small';
+    if (alreadySaved) {
+      saveScoreBtn.textContent = 'Saved to Scored!';
+      saveScoreBtn.disabled = true;
+      saveScoreBtn.style.opacity = '0.5';
+    } else {
+      saveScoreBtn.textContent = 'Save to Scored!';
+      saveScoreBtn.addEventListener('click', function() {
+        saveRoundToScoredApp(latestRound, function() {
+          saveScoreBtn.textContent = 'Saved to Scored!';
+          saveScoreBtn.disabled = true;
+          saveScoreBtn.style.opacity = '0.5';
+        });
+      });
+    }
+    dom.scoreboardActions.appendChild(saveScoreBtn);
+  }
+
   var closeBtn = document.createElement('button');
   closeBtn.className = 'btn btn-secondary btn-small';
   closeBtn.textContent = 'Close';
@@ -1449,6 +1483,45 @@ function showScoreboard() {
     dom.scoreboardOverlay.classList.remove('active');
   });
   dom.scoreboardActions.appendChild(closeBtn);
+}
+
+function isScoredAppEligible() {
+  if (!app.game || !app.game.players) return false;
+  var names = [];
+  if (app.game.players.player1) names.push(app.game.players.player1.name.toLowerCase());
+  if (app.game.players.player2) names.push(app.game.players.player2.name.toLowerCase());
+  names.sort();
+  return names.length === 2 && names[0] === 'adeline' && names[1] === 'mark';
+}
+
+function getPlayerScoringId(playerSlot) {
+  var name = app.game.players[playerSlot].name.toLowerCase();
+  if (name === 'mark') return 'mark';
+  if (name === 'adeline') return 'adeline';
+  return null;
+}
+
+function saveRoundToScoredApp(roundData, callback) {
+  var p1Id = getPlayerScoringId('player1');
+  var p2Id = getPlayerScoringId('player2');
+  if (!p1Id || !p2Id) return;
+
+  var entry = {
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    scores: {},
+    source: 'web-game',
+    webGameId: app.gameId,
+    webRound: roundData.round
+  };
+  entry.scores[p1Id] = roundData.player1;
+  entry.scores[p2Id] = roundData.player2;
+
+  db.ref('scoring/rounds').push(entry).then(function() {
+    var savedKey = 'round_' + roundData.round;
+    db.ref('games/' + app.gameId + '/savedToScoring/' + savedKey).set(true);
+    showToast('Score saved to Scored!');
+    if (callback) callback();
+  });
 }
 
 // === Draw Card Animation ===
@@ -1515,6 +1588,38 @@ function animateDrawnCard(cardId, callback) {
         }, 450);
       }, 700);
     }, 350);
+  });
+}
+
+function animateOpponentDraw() {
+  var overlay = document.getElementById('drawn-card-overlay');
+  overlay.innerHTML = '';
+  overlay.classList.add('active');
+
+  var drawPileEl = document.getElementById('draw-stack');
+  var drawRect = drawPileEl.getBoundingClientRect();
+
+  var anim = document.createElement('div');
+  anim.className = 'drawn-card-anim';
+  anim.style.top = drawRect.top + 'px';
+  anim.style.left = drawRect.left + 'px';
+  anim.innerHTML = '<div class="drawn-card-back"><img src="cards/back.png" alt="card"></div>';
+  overlay.appendChild(anim);
+
+  var oppHandEl = document.getElementById('opponent-hand');
+  var oppRect = oppHandEl.getBoundingClientRect();
+  var targetX = oppRect.left + oppRect.width / 2 - parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2;
+  var targetY = oppRect.top;
+
+  requestAnimationFrame(function() {
+    anim.classList.add('fly-to-hand');
+    anim.style.top = targetY + 'px';
+    anim.style.left = targetX + 'px';
+
+    setTimeout(function() {
+      overlay.classList.remove('active');
+      overlay.innerHTML = '';
+    }, 500);
   });
 }
 
