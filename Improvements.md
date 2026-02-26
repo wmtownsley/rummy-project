@@ -61,17 +61,16 @@ _(none)_
 
   _Requested by Mark._
 
+### Completed
+
+- **Auto-save web game scores to Scored! app (Phase 1)**
+  At the end of a Rummy2go web game round, a "Save to Scored!" button appears on the scoreboard if both player names match "Mark" and "Adeline" (either slot order). Writes to `/scoring/rounds/` with `source: "web-game"`, `webGameId`, and `webRound`. Duplicate prevention via `/games/{id}/savedToScoring/`. Button greys out after saving.
+  _Requested by Mark. Completed 2026-02-25._
+
 ### Queued
 
-- **Auto-save web game scores to Scored! app** _(next up)_
-  At the end of a Rummy2go web game round, show a "Save Score" button that writes the round score to the Scored! app's Firebase data (`/scoring/rounds/`). Requirements:
-  - Only offer the button if both player names exactly match "Mark" and "Adeline" (in either player slot order).
-  - Prevent duplicate saves (don't allow the same round to be added more than once).
-  - Store `source: "web-game"` in the round data (vs. `source: "manual"` for iPhone entries) for debugging. This field does not need to be displayed in either app, just stored.
-  - Map player1/player2 to the correct `mark`/`adeline` IDs based on name matching.
-
-  **Phase 2 (after the above works):** Show the Scored! app's full history in the Rummy2go web game's History view, replacing or supplementing the per-game scoreHistory. This unifies the scoring view across both apps.
-
+- **Show Scored! history in web game (Phase 2)**
+  Show the Scored! app's full history in the Rummy2go web game's History view, replacing or supplementing the per-game scoreHistory. This unifies the scoring view across both apps.
   _Requested by Mark. Queued 2026-02-25._
 
 ## Roadmap
