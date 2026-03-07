@@ -16,16 +16,16 @@ jobs:
 
       - name: Fetch scoring data from Firebase
         run: |
-          mkdir -p scoring-app/backup
+          mkdir -p backups
           curl -sf 'https://rummy2go-default-rtdb.firebaseio.com/scoring.json' \
-            | python3 -m json.tool > scoring-app/backup/scores.json.new
+            | python3 -m json.tool > backups/scores.json.new
 
       - name: Check for changes
         id: diff
         run: |
-          if [ -f scoring-app/backup/scores.json ]; then
-            OLD_HASH=$(sha256sum scoring-app/backup/scores.json | cut -d' ' -f1)
-            NEW_HASH=$(sha256sum scoring-app/backup/scores.json.new | cut -d' ' -f1)
+          if [ -f backups/scores.json ]; then
+            OLD_HASH=$(sha256sum backups/scores.json | cut -d' ' -f1)
+            NEW_HASH=$(sha256sum backups/scores.json.new | cut -d' ' -f1)
             if [ "$OLD_HASH" = "$NEW_HASH" ]; then
               echo "changed=false" >> $GITHUB_OUTPUT
               echo "No changes detected"
@@ -40,18 +40,18 @@ jobs:
 
       - name: Update backup file
         if: steps.diff.outputs.changed == 'true'
-        run: mv scoring-app/backup/scores.json.new scoring-app/backup/scores.json
+        run: mv backups/scores.json.new backups/scores.json
 
       - name: Commit and push
         if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scoring-app/backup/scores.json
-          ROUND_COUNT=$(python3 -c "import json; d=json.load(open('scoring-app/backup/scores.json')); print(len(d.get('rounds',{})))")
+          git add backups/scores.json
+          ROUND_COUNT=$(python3 -c "import json; d=json.load(open('backups/scores.json')); print(len(d.get('rounds',{})))")
           git commit -m "Backup scoring data ($ROUND_COUNT rounds)"
           git push
 
       - name: Clean up
         if: always()
-        run: rm -f scoring-app/backup/scores.json.new
+        run: rm -f backups/scores.json.new
