@@ -160,7 +160,35 @@ Replace the current rules with:
 }
 ```
 
-This scopes access to only the `games/` and `scoring/` paths and blocks arbitrary top-level reads/writes. A more thorough lockdown (validating player tokens, protecting hand data from opponents) would require app-level changes and is not needed for now.
+This scopes access to only the `games/` and `scoring/` paths and blocks arbitrary top-level reads/writes.
+
+**Done:** Rules updated 2026-02-25. Expiration removed.
+
+### Queued: App-level Auth Token for Scoring
+
+Add a simple shared secret (app-level password) to prevent random strangers from reading/writing scoring data. Approach:
+
+- Embed a secret token in the Scored! app code (e.g., a query parameter or hardcoded constant).
+- Include the token in a known field when writing rounds (e.g., `authToken` field on each write).
+- Firebase Security Rules validate that the token matches: `.write": "newData.child('authToken').val() === 'SECRET'"` and `.read": "true"` (reads are less critical, or can also require a token via a wrapper).
+- The web game's "Save to Scored!" also includes the token.
+- Since the token is embedded in the app code (which is cached by the service worker), Adeline does NOT need to re-install the PWA — the token ships with the next service worker cache update.
+- This isn't enterprise security, but it prevents casual abuse. The token is visible in source code to anyone who looks, but it stops drive-by writes from bots or scanners.
+
+_Queued 2026-02-25. Implement when convenient._
+
+### Queued: Automated Score Backup to Git
+
+Periodically back up scoring data from Firebase to a JSON file committed to the git repo. Approach:
+
+- A scheduled job (e.g., GitHub Actions cron, or a local cron script) fetches `/scoring/rounds.json` from Firebase.
+- Compares a hash of the fetched data against the last committed version.
+- If changed, commits the updated JSON file to the repo (e.g., `scoring-app/backup/scores.json`).
+- If unchanged, does nothing — no unnecessary commits or storage growth.
+- This provides a versioned history of all scoring data in git, recoverable even if Firebase data is lost or corrupted.
+- Frequency: daily is sufficient given the casual usage pattern.
+
+_Queued 2026-02-25. Implement when convenient._
 
 ---
 
