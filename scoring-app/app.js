@@ -216,22 +216,21 @@ function setupEvents() {
         input.select();
       });
 
+      pmBtn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      pmBtn.addEventListener('touchstart', function(e) {
+        e.stopPropagation();
+      });
       pmBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (state.scores[idx] !== null) {
-          state.scores[idx] = -state.scores[idx];
-          input.value = Math.abs(state.scores[idx]);
-          display.textContent = state.scores[idx];
-          display.className = 'score-display';
-        } else {
-          var val = parseInt(input.value, 10);
-          if (!isNaN(val)) {
-            state.scores[idx] = -val;
-            input.value = Math.abs(val);
-            display.textContent = state.scores[idx];
-            display.className = 'score-display';
-          }
-        }
+        var val = parseInt(input.value, 10);
+        if (isNaN(val) || val === 0) return;
+        state.scores[idx] = state.scores[idx] !== null ? -state.scores[idx] : -val;
+        display.textContent = state.scores[idx];
+        display.className = 'score-display';
+        input.focus();
         updateSaveButton();
       });
 
