@@ -216,15 +216,7 @@ function setupEvents() {
         input.select();
       });
 
-      pmBtn.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      });
-      pmBtn.addEventListener('touchstart', function(e) {
-        e.stopPropagation();
-      });
-      pmBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
+      function toggleSign() {
         var val = parseInt(input.value, 10);
         if (isNaN(val) || val === 0) return;
         state.scores[idx] = state.scores[idx] !== null ? -state.scores[idx] : -val;
@@ -232,6 +224,16 @@ function setupEvents() {
         display.className = 'score-display';
         input.focus();
         updateSaveButton();
+      }
+      pmBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSign();
+      });
+      pmBtn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleSign();
       });
 
       input.addEventListener('input', function() {
