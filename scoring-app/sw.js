@@ -1,4 +1,4 @@
-var CACHE_NAME = 'rummy-scores-v12';
+var CACHE_NAME = 'rummy-scores-v13';
 var URLS_TO_CACHE = [
   './',
   './index.html',
