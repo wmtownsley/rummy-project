@@ -211,7 +211,7 @@ function setupEvents() {
       card.addEventListener('click', function(e) {
         if (card.classList.contains('editing')) return;
         card.classList.add('editing', 'active');
-        input.value = state.scores[idx] !== null ? Math.abs(state.scores[idx]) : '';
+        input.value = state.scores[idx] !== null ? state.scores[idx] : '';
         input.focus();
         input.select();
       });
@@ -219,8 +219,10 @@ function setupEvents() {
       function toggleSign() {
         var val = parseInt(input.value, 10);
         if (isNaN(val) || val === 0) return;
-        state.scores[idx] = state.scores[idx] !== null ? -state.scores[idx] : -val;
-        display.textContent = state.scores[idx];
+        var flipped = -val;
+        state.scores[idx] = flipped;
+        input.value = flipped;
+        display.textContent = flipped;
         display.className = 'score-display';
         input.focus();
         updateSaveButton();
@@ -245,9 +247,8 @@ function setupEvents() {
         } else {
           var num = parseInt(val, 10);
           if (!isNaN(num)) {
-            var isNeg = state.scores[idx] !== null && state.scores[idx] < 0;
-            state.scores[idx] = isNeg ? -Math.abs(num) : Math.abs(num);
-            display.textContent = state.scores[idx];
+            state.scores[idx] = num;
+            display.textContent = num;
             display.className = 'score-display';
           }
         }
