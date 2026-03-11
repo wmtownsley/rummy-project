@@ -206,13 +206,33 @@ function setupEvents() {
       var card = document.getElementById('player-card-' + idx);
       var input = document.getElementById('score-input-' + idx);
       var display = document.getElementById('score-display-' + idx);
+      var pmBtn = document.getElementById('plus-minus-' + idx);
 
-      card.addEventListener('click', function() {
+      card.addEventListener('click', function(e) {
         if (card.classList.contains('editing')) return;
         card.classList.add('editing', 'active');
-        input.value = state.scores[idx] !== null ? state.scores[idx] : '';
+        input.value = state.scores[idx] !== null ? Math.abs(state.scores[idx]) : '';
         input.focus();
         input.select();
+      });
+
+      pmBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (state.scores[idx] !== null) {
+          state.scores[idx] = -state.scores[idx];
+          input.value = Math.abs(state.scores[idx]);
+          display.textContent = state.scores[idx];
+          display.className = 'score-display';
+        } else {
+          var val = parseInt(input.value, 10);
+          if (!isNaN(val)) {
+            state.scores[idx] = -val;
+            input.value = Math.abs(val);
+            display.textContent = state.scores[idx];
+            display.className = 'score-display';
+          }
+        }
+        updateSaveButton();
       });
 
       input.addEventListener('input', function() {
@@ -224,8 +244,9 @@ function setupEvents() {
         } else {
           var num = parseInt(val, 10);
           if (!isNaN(num)) {
-            state.scores[idx] = num;
-            display.textContent = num;
+            var isNeg = state.scores[idx] !== null && state.scores[idx] < 0;
+            state.scores[idx] = isNeg ? -Math.abs(num) : Math.abs(num);
+            display.textContent = state.scores[idx];
             display.className = 'score-display';
           }
         }

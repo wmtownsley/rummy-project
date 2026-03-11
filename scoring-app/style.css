@@ -129,6 +129,30 @@ body {
   display: block;
 }
 
+.plus-minus-btn {
+  display: none;
+  background: var(--surface-light);
+  border: 1px solid var(--text-muted);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.plus-minus-btn:active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.player-score-card.editing .plus-minus-btn {
+  display: block;
+}
+
 /* Save Button */
 .btn-save {
   background: var(--accent);
