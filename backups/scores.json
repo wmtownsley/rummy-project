@@ -404,6 +404,30 @@
             "source": "manual",
             "timestamp": 1775015874121
         },
+        "-OpGe6MBD564wh9tnCno": {
+            "scores": {
+                "adeline": 100,
+                "mark": 115
+            },
+            "source": "manual",
+            "timestamp": 1775191488017
+        },
+        "-OpGh27M0-dR6ZdsnZXE": {
+            "scores": {
+                "adeline": 90,
+                "mark": -25
+            },
+            "source": "manual",
+            "timestamp": 1775192257118
+        },
+        "-OpGmcUMtkb1PE6vvF88": {
+            "scores": {
+                "adeline": 160,
+                "mark": 120
+            },
+            "source": "manual",
+            "timestamp": 1775193720859
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
