@@ -788,6 +788,38 @@
             "source": "manual",
             "timestamp": 1776744083779
         },
+        "-OqnC2njvUQHWYbqL0zB": {
+            "scores": {
+                "adeline": 115,
+                "mark": 80
+            },
+            "source": "manual",
+            "timestamp": 1776828038460
+        },
+        "-OqnH1dxyAE2FMROreR0": {
+            "scores": {
+                "adeline": 220,
+                "mark": 40
+            },
+            "source": "manual",
+            "timestamp": 1776829344461
+        },
+        "-OqnIo_fiUHELTy-BcQb": {
+            "scores": {
+                "adeline": -30,
+                "mark": 70
+            },
+            "source": "manual",
+            "timestamp": 1776829811131
+        },
+        "-OqnPfSfAK6VrdHf56_G": {
+            "scores": {
+                "adeline": 170,
+                "mark": 165
+            },
+            "source": "manual",
+            "timestamp": 1776831608760
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
