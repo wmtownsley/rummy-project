@@ -1,9 +1,9 @@
-var CACHE_NAME = 'rummy-scores-v17';
+var CACHE_NAME = 'rummy-scores-v18';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=17',
-  './app.js?v=17',
+  './style.css?v=18',
+  './app.js?v=18',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'

@@ -255,14 +255,6 @@ function renderRounds() {
 
     var meta = document.createElement('span');
     meta.className = 'round-meta';
-    if (r.dealer === PLAYERS[0].id || r.dealer === PLAYERS[1].id) {
-      var dealerEl = document.createElement('span');
-      dealerEl.className = 'round-dealer';
-      dealerEl.textContent = dealerInitial(r.dealer);
-      dealerEl.title = 'Dealer';
-      dealerEl.setAttribute('aria-label', 'Dealer');
-      meta.appendChild(dealerEl);
-    }
     var dateSpan = document.createElement('span');
     dateSpan.className = 'round-meta-date';
     if (r.timestamp && typeof r.timestamp === 'number' && r.timestamp > 1000000000000) {
@@ -272,6 +264,14 @@ function renderRounds() {
       dateSpan.textContent = '---';
     }
     meta.appendChild(dateSpan);
+    if (r.dealer === PLAYERS[0].id || r.dealer === PLAYERS[1].id) {
+      var dealerEl = document.createElement('span');
+      dealerEl.className = 'round-dealer';
+      dealerEl.textContent = dealerInitial(r.dealer);
+      dealerEl.title = 'Dealer';
+      dealerEl.setAttribute('aria-label', 'Dealer');
+      meta.appendChild(dealerEl);
+    }
     row.appendChild(meta);
 
     list.appendChild(row);
