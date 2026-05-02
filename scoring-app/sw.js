@@ -1,9 +1,9 @@
-var CACHE_NAME = 'rummy-scores-v16';
+var CACHE_NAME = 'rummy-scores-v17';
 var URLS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
+  './style.css?v=17',
+  './app.js?v=17',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -12,7 +12,11 @@ var URLS_TO_CACHE = [
 self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(URLS_TO_CACHE);
+      // cache: 'reload' bypasses the HTTP cache so we always pull fresh assets on a version bump
+      var requests = URLS_TO_CACHE.map(function(url) {
+        return new Request(url, { cache: 'reload' });
+      });
+      return cache.addAll(requests);
     })
   );
   self.skipWaiting();
