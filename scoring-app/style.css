@@ -334,23 +334,26 @@ body {
 .round-meta {
   color: var(--text-muted);
   font-size: 12px;
-  min-width: 72px;
+  min-width: 50px;
   text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
+  max-width: 100px;
 }
 
-.dealer-marker {
+.round-score-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.round-dealer {
   color: var(--gold);
-  font-weight: 600;
-  font-size: 11px;
+  font-size: 14px;
+  line-height: 1;
   flex-shrink: 0;
 }
 
