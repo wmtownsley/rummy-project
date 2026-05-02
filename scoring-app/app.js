@@ -18,11 +18,36 @@ var PLAYERS = [
   { id: 'mark', name: 'Mark' }
 ];
 
+var HAND = '\u270B';
+
 var state = {
   rounds: [],
   scores: [null, null],
-  online: navigator.onLine
+  online: navigator.onLine,
+  dealer: PLAYERS[0].id,
+  dealerDirty: false
 };
+
+function otherPlayer(id) {
+  return PLAYERS[0].id === id ? PLAYERS[1].id : PLAYERS[0].id;
+}
+
+/** Next dealer = opposite of whoever dealt the latest round that records a dealer. */
+function computeDefaultDealer(rounds) {
+  for (var i = rounds.length - 1; i >= 0; i--) {
+    var d = rounds[i].dealer;
+    if (d === PLAYERS[0].id || d === PLAYERS[1].id) {
+      return otherPlayer(d);
+    }
+  }
+  return PLAYERS[0].id;
+}
+
+function dealerInitial(id) {
+  if (id === PLAYERS[0].id) return 'A';
+  if (id === PLAYERS[1].id) return 'M';
+  return '';
+}
 
 // === Toast ===
 var toastTimer = null;
@@ -58,21 +83,30 @@ function saveRound() {
   for (var i = 0; i < PLAYERS.length; i++) {
     if (state.scores[i] === null) return;
   }
+  var dealerSaved = state.dealer;
   var roundData = {
     timestamp: firebase.database.ServerValue.TIMESTAMP,
     scores: {},
-    source: 'manual'
+    source: 'manual',
+    dealer: dealerSaved
   };
 
   for (var i = 0; i < PLAYERS.length; i++) {
     roundData.scores[PLAYERS[i].id] = state.scores[i];
   }
 
-  db.ref('scoring/rounds').push(roundData);
-
-  state.scores = PLAYERS.map(function() { return null; });
-  clearInputs();
-  showToast('Saved');
+  db.ref('scoring/rounds').push(roundData).then(function() {
+    state.dealerDirty = false;
+    state.dealer = otherPlayer(dealerSaved);
+    state.scores = PLAYERS.map(function() { return null; });
+    clearInputs();
+    showToast('Saved');
+    renderDealer();
+    renderDealerHint();
+  }).catch(function(err) {
+    console.error(err);
+    showToast('Save failed — try again');
+  });
 }
 
 // === Listen to Rounds ===
@@ -84,6 +118,9 @@ function listenToRounds() {
       r._id = child.key;
       state.rounds.push(r);
     });
+    if (!state.dealerDirty) {
+      state.dealer = computeDefaultDealer(state.rounds);
+    }
     renderAll();
   });
 }
@@ -113,6 +150,37 @@ function updateSaveButton() {
 function renderAll() {
   renderTotals();
   renderRounds();
+  renderDealer();
+  renderDealerHint();
+}
+
+function renderDealer() {
+  for (var i = 0; i < PLAYERS.length; i++) {
+    var badge = document.getElementById('dealer-badge-' + i);
+    if (!badge) continue;
+    if (PLAYERS[i].id === state.dealer) {
+      badge.classList.add('active');
+    } else {
+      badge.classList.remove('active');
+    }
+  }
+}
+
+function renderDealerHint() {
+  var el = document.getElementById('dealer-hint');
+  if (!el) return;
+  if (localStorage.getItem('scored_dealer_hint_dismissed')) {
+    el.classList.add('is-hidden');
+  } else {
+    el.classList.remove('is-hidden');
+  }
+}
+
+function dismissDealerHintOnce() {
+  if (!localStorage.getItem('scored_dealer_hint_dismissed')) {
+    localStorage.setItem('scored_dealer_hint_dismissed', '1');
+    renderDealerHint();
+  }
 }
 
 function renderTotals() {
@@ -187,11 +255,21 @@ function renderRounds() {
 
     var meta = document.createElement('span');
     meta.className = 'round-meta';
+    var dateSpan = document.createElement('span');
+    dateSpan.className = 'round-meta-date';
     if (r.timestamp && typeof r.timestamp === 'number' && r.timestamp > 1000000000000) {
       var d = new Date(r.timestamp);
-      meta.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dateSpan.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-      meta.textContent = '---';
+      dateSpan.textContent = '---';
+    }
+    meta.appendChild(dateSpan);
+    if (r.dealer === PLAYERS[0].id || r.dealer === PLAYERS[1].id) {
+      var marker = document.createElement('span');
+      marker.className = 'dealer-marker';
+      marker.textContent = HAND + dealerInitial(r.dealer);
+      marker.title = 'Dealer';
+      meta.appendChild(marker);
     }
     row.appendChild(meta);
 
@@ -209,7 +287,9 @@ function setupEvents() {
       var pmBtn = document.getElementById('plus-minus-' + idx);
 
       card.addEventListener('click', function(e) {
+        if (e.target.closest('.dealer-badge')) return;
         if (card.classList.contains('editing')) return;
+        dismissDealerHintOnce();
         card.classList.add('editing', 'active');
         input.value = state.scores[idx] !== null ? state.scores[idx] : '';
         input.focus();
@@ -278,13 +358,44 @@ function setupEvents() {
   }
 
   document.getElementById('save-btn').addEventListener('click', saveRound);
+}
 
+function setupDealerBadges() {
+  function swapDealerFromBadge(idx) {
+    if (PLAYERS[idx].id !== state.dealer) return;
+    state.dealer = otherPlayer(state.dealer);
+    state.dealerDirty = true;
+    renderDealer();
+  }
+
+  for (var i = 0; i < PLAYERS.length; i++) {
+    (function(idx) {
+      var badge = document.getElementById('dealer-badge-' + idx);
+      if (!badge) return;
+
+      badge.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        swapDealerFromBadge(idx);
+      });
+
+      badge.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          swapDealerFromBadge(idx);
+        }
+      });
+    })(i);
+  }
 }
 
 // === Init ===
 function init() {
   updateConnectionStatus();
   setupEvents();
+  setupDealerBadges();
+  renderDealer();
+  renderDealerHint();
   listenToRounds();
 }
 

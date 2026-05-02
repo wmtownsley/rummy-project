@@ -25,13 +25,14 @@
     <div id="main-app">
 
     <header id="header">
-      <h1>Scored! <span class="version-tag">v12</span></h1>
+      <h1>Scored! <span class="version-tag">v14</span></h1>
       <div id="connection-status" class="status-online" title="Online">&#9679;</div>
     </header>
 
     <!-- Score Entry -->
     <section id="score-entry">
       <div class="player-score-card" id="player-card-0" data-player="0">
+        <span class="dealer-badge" id="dealer-badge-0" role="button" tabindex="0" title="Dealer — tap to swap" aria-label="Dealer, tap to swap">&#9995;</span>
         <div class="player-name" id="player-name-0">Adeline</div>
         <div class="score-display" id="score-display-0">&mdash;</div>
         <input type="number" class="score-input" id="score-input-0" inputmode="numeric" pattern="-?[0-9]*" placeholder="0">
@@ -39,6 +40,7 @@
       </div>
 
       <div class="player-score-card" id="player-card-1" data-player="1">
+        <span class="dealer-badge" id="dealer-badge-1" role="button" tabindex="0" title="Dealer — tap to swap" aria-label="Dealer, tap to swap">&#9995;</span>
         <div class="player-name" id="player-name-1">Mark</div>
         <div class="score-display" id="score-display-1">&mdash;</div>
         <input type="number" class="score-input" id="score-input-1" inputmode="numeric" pattern="-?[0-9]*" placeholder="0">
@@ -46,6 +48,7 @@
       </div>
 
       <button class="btn-save" id="save-btn" disabled>Save</button>
+      <p id="dealer-hint" class="dealer-hint">Tap &#9995; to swap dealer</p>
     </section>
 
     <!-- Running Totals -->
