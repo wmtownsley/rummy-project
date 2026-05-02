@@ -10,14 +10,14 @@
   <title>Scored!</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="preload" href="style.css?v=18" as="style">
-  <link rel="preload" href="app.js?v=18" as="script">
+  <link rel="preload" href="style.css?v=19" as="style">
+  <link rel="preload" href="app.js?v=19" as="script">
   <style>
     /* Inline critical CSS to prevent white flash on launch */
     body { margin: 0; background: #1a1a2e; color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     #app { max-width: 420px; margin: 0 auto; padding: 0 16px; }
   </style>
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
   <div id="app">
@@ -25,7 +25,7 @@
     <div id="main-app">
 
     <header id="header">
-      <h1>Scored! <span class="version-tag">v18</span></h1>
+      <h1>Scored! <span class="version-tag">v19</span></h1>
       <div id="connection-status" class="status-online" title="Online">&#9679;</div>
     </header>
 
@@ -48,7 +48,6 @@
       </div>
 
       <button class="btn-save" id="save-btn" disabled>Save</button>
-      <p id="dealer-hint" class="dealer-hint">Tap &#9995; to swap dealer</p>
     </section>
 
     <!-- Running Totals -->
@@ -80,6 +79,6 @@
   <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
   <!-- App (defer to load after Firebase) -->
-  <script defer src="app.js?v=18"></script>
+  <script defer src="app.js?v=19"></script>
 </body>
 </html>

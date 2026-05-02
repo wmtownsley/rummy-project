@@ -102,7 +102,6 @@ function saveRound() {
     clearInputs();
     showToast('Saved');
     renderDealer();
-    renderDealerHint();
   }).catch(function(err) {
     console.error(err);
     showToast('Save failed — try again');
@@ -151,7 +150,6 @@ function renderAll() {
   renderTotals();
   renderRounds();
   renderDealer();
-  renderDealerHint();
 }
 
 function renderDealer() {
@@ -163,23 +161,6 @@ function renderDealer() {
     } else {
       badge.classList.remove('active');
     }
-  }
-}
-
-function renderDealerHint() {
-  var el = document.getElementById('dealer-hint');
-  if (!el) return;
-  if (localStorage.getItem('scored_dealer_hint_dismissed')) {
-    el.classList.add('is-hidden');
-  } else {
-    el.classList.remove('is-hidden');
-  }
-}
-
-function dismissDealerHintOnce() {
-  if (!localStorage.getItem('scored_dealer_hint_dismissed')) {
-    localStorage.setItem('scored_dealer_hint_dismissed', '1');
-    renderDealerHint();
   }
 }
 
@@ -290,7 +271,6 @@ function setupEvents() {
       card.addEventListener('click', function(e) {
         if (e.target.closest('.dealer-badge')) return;
         if (card.classList.contains('editing')) return;
-        dismissDealerHintOnce();
         card.classList.add('editing', 'active');
         input.value = state.scores[idx] !== null ? state.scores[idx] : '';
         input.focus();
@@ -396,7 +376,6 @@ function init() {
   setupEvents();
   setupDealerBadges();
   renderDealer();
-  renderDealerHint();
   listenToRounds();
 }
 
