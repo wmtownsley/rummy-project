@@ -208,7 +208,7 @@ function renderTotals() {
     deltaEl.textContent = rounds.length === 0 ? '' : 'Tied';
   } else {
     var leader = delta > 0 ? PLAYERS[0].name : PLAYERS[1].name;
-    deltaEl.textContent = leader + ' ' + Math.abs(delta);
+    deltaEl.textContent = leader + ' +' + Math.abs(delta);
   }
 }
 
@@ -245,36 +245,33 @@ function renderRounds() {
     var scoresEl = document.createElement('div');
     scoresEl.className = 'round-scores';
     for (var p = 0; p < PLAYERS.length; p++) {
-      var cell = document.createElement('span');
-      cell.className = 'round-score-cell';
+      var s = document.createElement('span');
       var isWinner = vals[p] === maxVal && !allSame;
-      var isDealer = r.dealer === PLAYERS[p].id;
-
-      var scoreSpan = document.createElement('span');
-      scoreSpan.className = 'round-score ' + (allSame ? '' : (isWinner ? 'winner' : 'loser'));
-      scoreSpan.textContent = vals[p];
-      cell.appendChild(scoreSpan);
-
-      if (isDealer) {
-        var dealerEl = document.createElement('span');
-        dealerEl.className = 'round-dealer';
-        dealerEl.textContent = HAND;
-        dealerEl.title = 'Dealer';
-        dealerEl.setAttribute('aria-label', 'Dealer');
-        cell.appendChild(dealerEl);
-      }
-      scoresEl.appendChild(cell);
+      s.className = 'round-score ' + (allSame ? '' : (isWinner ? 'winner' : 'loser'));
+      s.textContent = vals[p];
+      scoresEl.appendChild(s);
     }
     row.appendChild(scoresEl);
 
     var meta = document.createElement('span');
     meta.className = 'round-meta';
+    if (r.dealer === PLAYERS[0].id || r.dealer === PLAYERS[1].id) {
+      var dealerEl = document.createElement('span');
+      dealerEl.className = 'round-dealer';
+      dealerEl.textContent = dealerInitial(r.dealer);
+      dealerEl.title = 'Dealer';
+      dealerEl.setAttribute('aria-label', 'Dealer');
+      meta.appendChild(dealerEl);
+    }
+    var dateSpan = document.createElement('span');
+    dateSpan.className = 'round-meta-date';
     if (r.timestamp && typeof r.timestamp === 'number' && r.timestamp > 1000000000000) {
       var d = new Date(r.timestamp);
-      meta.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dateSpan.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-      meta.textContent = '---';
+      dateSpan.textContent = '---';
     }
+    meta.appendChild(dateSpan);
     row.appendChild(meta);
 
     list.appendChild(row);
