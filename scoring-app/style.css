@@ -307,6 +307,18 @@ body {
 .round-score.winner { color: var(--green); }
 .round-score.loser { color: var(--red); }
 
+.round-delta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  text-align: center;
+  min-width: 40px;
+}
+
+.round-delta-label {
+  min-width: 40px;
+}
+
 .round-header {
   background: transparent;
   padding: 4px 16px 6px;

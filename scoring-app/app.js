@@ -204,12 +204,21 @@ function renderRounds() {
   var header = document.createElement('div');
   header.className = 'round-row round-header';
   var headerHtml = '<div class="round-scores">';
-  for (var p = 0; p < PLAYERS.length; p++) {
-    headerHtml += '<span class="round-score-label">' + PLAYERS[p].name + '</span>';
-  }
+  headerHtml += '<span class="round-score-label">' + PLAYERS[0].name + '</span>';
+  headerHtml += '<span class="round-delta-label"></span>';
+  headerHtml += '<span class="round-score-label">' + PLAYERS[1].name + '</span>';
   headerHtml += '</div><span class="round-meta"></span>';
   header.innerHTML = headerHtml;
   list.appendChild(header);
+
+  // Pre-compute running deltas (player0 - player1)
+  var runningDeltas = [];
+  var runningTotal0 = 0, runningTotal1 = 0;
+  for (var i = 0; i < rounds.length; i++) {
+    runningTotal0 += (rounds[i].scores && rounds[i].scores[PLAYERS[0].id]) || 0;
+    runningTotal1 += (rounds[i].scores && rounds[i].scores[PLAYERS[1].id]) || 0;
+    runningDeltas.push(runningTotal0 - runningTotal1);
+  }
 
   for (var i = rounds.length - 1; i >= 0; i--) {
     var r = rounds[i];
@@ -223,15 +232,27 @@ function renderRounds() {
     var maxVal = Math.max.apply(null, vals);
     var allSame = vals.every(function(v) { return v === vals[0]; });
 
+    var delta = runningDeltas[i];
+    var deltaLabel = delta === 0 ? 'T' : (delta > 0 ? PLAYERS[0].name[0] : PLAYERS[1].name[0]) + Math.abs(delta);
+
     var scoresEl = document.createElement('div');
     scoresEl.className = 'round-scores';
-    for (var p = 0; p < PLAYERS.length; p++) {
-      var s = document.createElement('span');
-      var isWinner = vals[p] === maxVal && !allSame;
-      s.className = 'round-score ' + (allSame ? '' : (isWinner ? 'winner' : 'loser'));
-      s.textContent = vals[p];
-      scoresEl.appendChild(s);
-    }
+
+    var s0 = document.createElement('span');
+    s0.className = 'round-score ' + (allSame ? '' : (vals[0] === maxVal ? 'winner' : 'loser'));
+    s0.textContent = vals[0];
+    scoresEl.appendChild(s0);
+
+    var deltaEl = document.createElement('span');
+    deltaEl.className = 'round-delta';
+    deltaEl.textContent = deltaLabel;
+    scoresEl.appendChild(deltaEl);
+
+    var s1 = document.createElement('span');
+    s1.className = 'round-score ' + (allSame ? '' : (vals[1] === maxVal ? 'winner' : 'loser'));
+    s1.textContent = vals[1];
+    scoresEl.appendChild(s1);
+
     row.appendChild(scoresEl);
 
     var meta = document.createElement('span');
