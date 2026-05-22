@@ -1182,6 +1182,33 @@
             "source": "manual",
             "timestamp": 1779329813902
         },
+        "-OtCnCkQtc-_kQ65qDKp": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 20,
+                "mark": 75
+            },
+            "source": "manual",
+            "timestamp": 1779421731946
+        },
+        "-OtCpP8MD5YEII_ckoeJ": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 80,
+                "mark": 45
+            },
+            "source": "manual",
+            "timestamp": 1779422306979
+        },
+        "-OtCsznEheZXpemmGUr7": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 50,
+                "mark": 155
+            },
+            "source": "manual",
+            "timestamp": 1779423247660
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
