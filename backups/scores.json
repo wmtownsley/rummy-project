@@ -1263,6 +1263,33 @@
             "source": "manual",
             "timestamp": 1779683747132
         },
+        "-OtXKFTETWklOAlF-mEE": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 95,
+                "mark": 150
+            },
+            "source": "manual",
+            "timestamp": 1779766200278
+        },
+        "-OtXQ548N8zvASY8QboI": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 135,
+                "mark": 155
+            },
+            "source": "manual",
+            "timestamp": 1779767730588
+        },
+        "-OtXSsv-IB__Hmi-mtJ5": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 65,
+                "mark": -5
+            },
+            "source": "manual",
+            "timestamp": 1779768463113
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
