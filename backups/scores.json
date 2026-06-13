@@ -1371,6 +1371,51 @@
             "source": "manual",
             "timestamp": 1781237769899
         },
+        "-Ouyamn95lUzKEVHXafn": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 40,
+                "mark": 50
+            },
+            "source": "manual",
+            "timestamp": 1781314301204
+        },
+        "-Ouyh7g2oVnuNJLRwuBO": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 40,
+                "mark": 135
+            },
+            "source": "manual",
+            "timestamp": 1781315963735
+        },
+        "-OuyteRIu52OkH-fl9cs": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 100,
+                "mark": 200
+            },
+            "source": "manual",
+            "timestamp": 1781319247710
+        },
+        "-Ouz9Aez7okx0eH6vYSU": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 100,
+                "mark": 110
+            },
+            "source": "manual",
+            "timestamp": 1781323578118
+        },
+        "-OuzGdBlB24jnhB1OKpJ": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 70,
+                "mark": 165
+            },
+            "source": "manual",
+            "timestamp": 1781325534081
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
