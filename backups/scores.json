@@ -1992,6 +1992,42 @@
             "source": "manual",
             "timestamp": 1787968938632
         },
+        "-P0UvPJDDmXVmIXtcm3H": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 140,
+                "mark": 125
+            },
+            "source": "manual",
+            "timestamp": 1788315805017
+        },
+        "-P0UyrMOWvHSIXlM1UMQ": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 80,
+                "mark": 10
+            },
+            "source": "manual",
+            "timestamp": 1788316710428
+        },
+        "-P0V1BkTW7ExzvJHQ2Qb": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 65,
+                "mark": 70
+            },
+            "source": "manual",
+            "timestamp": 1788317584507
+        },
+        "-P0V3oqJlNzqir79wRLI": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 70,
+                "mark": -30
+            },
+            "source": "manual",
+            "timestamp": 1788318272996
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
