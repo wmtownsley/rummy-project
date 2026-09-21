@@ -2208,6 +2208,60 @@
             "source": "manual",
             "timestamp": 1789533190416
         },
+        "-P20zvbKQ3xyTclFqkUo": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 95,
+                "mark": 145
+            },
+            "source": "manual",
+            "timestamp": 1789961157277
+        },
+        "-P213htBEFZyTv-_pUOR": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 80,
+                "mark": 110
+            },
+            "source": "manual",
+            "timestamp": 1789962411887
+        },
+        "-P217WHo19ASfXWM8tj6": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 70,
+                "mark": 55
+            },
+            "source": "manual",
+            "timestamp": 1789963408635
+        },
+        "-P21Aj8PZrre_WhQ_T4b": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 25,
+                "mark": 85
+            },
+            "source": "manual",
+            "timestamp": 1789964251823
+        },
+        "-P21AnmdqfT0iIk6RXIS": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": -50,
+                "mark": 0
+            },
+            "source": "manual",
+            "timestamp": 1789964270836
+        },
+        "-P21FC_GMmDQ7_wzAIR4": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 145,
+                "mark": 70
+            },
+            "source": "manual",
+            "timestamp": 1789965425109
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
