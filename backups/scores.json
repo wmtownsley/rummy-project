@@ -2748,6 +2748,33 @@
             "source": "manual",
             "timestamp": 1793416510543
         },
+        "-P5Uh7xzuug4CcX-z-yc": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 65,
+                "mark": 30
+            },
+            "source": "manual",
+            "timestamp": 1793680773076
+        },
+        "-P5Ulv9ski0lvm-Oe4Ka": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": 25,
+                "mark": 145
+            },
+            "source": "manual",
+            "timestamp": 1793682027262
+        },
+        "-P5UoBxQ8ABechyR6bto": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 65,
+                "mark": 5
+            },
+            "source": "manual",
+            "timestamp": 1793682624429
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
