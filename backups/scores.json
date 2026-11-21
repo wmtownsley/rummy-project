@@ -2955,6 +2955,24 @@
             "source": "manual",
             "timestamp": 1794981052291
         },
+        "-P6w0CpSuoTv82lgXzls": {
+            "dealer": "adeline",
+            "scores": {
+                "adeline": -20,
+                "mark": 85
+            },
+            "source": "manual",
+            "timestamp": 1795229539757
+        },
+        "-P6w2sfe_X3WgmDgDTyG": {
+            "dealer": "mark",
+            "scores": {
+                "adeline": 85,
+                "mark": 85
+            },
+            "source": "manual",
+            "timestamp": 1795230239538
+        },
         "hist_000": {
             "scores": {
                 "adeline": 45,
